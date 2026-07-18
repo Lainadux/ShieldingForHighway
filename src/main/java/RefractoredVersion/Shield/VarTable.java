@@ -37,8 +37,12 @@ public enum VarTable {
     plannedAcceleration,
     plannedSteering,
     targetSpeed,
+    @Deprecated
     idmCooldownTimer,
+    @Deprecated
     idmActionStepLength,
+    @Deprecated
     reactionDelay,
+    historicalCutInIntent,
     role
 }

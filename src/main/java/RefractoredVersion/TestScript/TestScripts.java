@@ -23,18 +23,21 @@
 package RefractoredVersion.TestScript;
 
 import RefractoredVersion.Engine.AIProfile;
-import RefractoredVersion.TestScript.Config.Config;
-import RefractoredVersion.TestScript.Config.EgoType;
-import RefractoredVersion.TestScript.Config.JavaMomentumConfig;
+import RefractoredVersion.Engine.Action;
+import RefractoredVersion.TestScript.Config.*;
+
+import java.util.List;
+
 public class TestScripts {
 
     public static void main(String[] args) throws Exception {
        // config should be  used to set the parameters of the simulation
        JavaMomentumConfig config = new JavaMomentumConfig();
-       config.setQuickTest(true);
-       // for generating logs
-       config.setQuickTest(false);
-       config.setGenLogs(true);
+
+       config.setShieldType(ShieldType.EXPLORE_FUTURE_ACTION);
+       config.setFutureActions(List.of());
+
+
        config.setEgoType(EgoType.EgoVehicle);
        config.setAiProfile(AIProfile.adversarial);
        config.setMinX(0);
@@ -43,11 +46,17 @@ public class TestScripts {
        config.setFrequency(20);
        config.setNumsOfSimulations(100);
        // generate logs in the "EGOTYPE_AIPROFILE_LOGS/timestamp/..."
-       config.setPATH_TO_SAVE("examples/ABZ2025/src/main/java/RefractoredVersion/logs/");
-
-       config.setMaxTargetSpeed(30);
+       config.setPATH_TO_SAVE("src/main/java/RefractoredVersion/logs/" + System.currentTimeMillis() + "/");
+       config.setMaxTargetSpeed(40);
        config.setPredictionTime(1);
+       // function name is misleading, when set to true targetSpeed is random.
+       config.setFixPrediction(true);
 
+       config.setTestFunction(TestFunction.RECOVER);
+       config.setTestFunction(TestFunction.GEN_LOGS);
+       String logsRoot = "C:\\MSCProject\\codes\\RefractoredVersionRepo\\src\\main\\java\\RefractoredVersion\\logs\\1784338908271\\EgoVehicle_adversarial_LOGS\\crashed_20260718_034509_780_64.json";
+
+       config.setRecoverInitialStateFile(logsRoot);
 
 
 

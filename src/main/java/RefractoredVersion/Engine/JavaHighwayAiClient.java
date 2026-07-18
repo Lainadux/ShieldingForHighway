@@ -105,7 +105,7 @@ public class JavaHighwayAiClient {
         stop();
 
         List<String> command = new ArrayList<>();
-        command.add(resolvePythonExecutable().toString());
+        command.addAll(resolvePythonCommand());
         Path script = resolveAiScript();
         command.add(script.toString());
         command.add("ai-server");
@@ -144,21 +144,40 @@ public class JavaHighwayAiClient {
         return payload;
     }
 
-    private Path resolvePythonExecutable() {
+    private List<String> resolvePythonCommand() {
         String configured = System.getProperty("abz.ai.python");
         if (configured == null || configured.isBlank()) {
             configured = System.getenv("ABZ_AI_PYTHON");
         }
         if (configured != null && !configured.isBlank()) {
-            return Paths.get(configured);
+            return List.of(configured);
+        }
+
+        Path aiRoot = resolveBundledAiRoot();
+        if (aiRoot != null) {
+            Path bundledPython = resolveVenvPython(aiRoot);
+            if (Files.exists(bundledPython)) {
+                return List.of(bundledPython.toString());
+            }
         }
 
         Path projectRoot = resolveCodesRoot().resolve("abz2025_casestudy_autonomous_driving");
-        Path bundledPython = projectRoot.resolve(Paths.get("env", "Scripts", "python.exe"));
+        Path bundledPython = resolveVenvPython(projectRoot);
         if (Files.exists(bundledPython)) {
-            return bundledPython;
+            return List.of(bundledPython.toString());
         }
-        return Paths.get("python");
+
+        if (System.getProperty("os.name").toLowerCase().contains("win")) {
+            return List.of("py", "-3");
+        }
+        return List.of("python3");
+    }
+
+    private Path resolveVenvPython(Path root) {
+        if (System.getProperty("os.name").toLowerCase().contains("win")) {
+            return root.resolve(Paths.get("env", "Scripts", "python.exe"));
+        }
+        return root.resolve(Paths.get("env", "bin", "python"));
     }
 
     private Path resolveAiScript() {
@@ -169,9 +188,28 @@ public class JavaHighwayAiClient {
         if (configured != null && !configured.isBlank()) {
             return Paths.get(configured);
         }
+
+        Path aiRoot = resolveBundledAiRoot();
+        if (aiRoot != null) {
+            return aiRoot.resolve("HighwayEnvironment_Base.py");
+        }
+
         return resolveCodesRoot()
                 .resolve("abz2025_casestudy_autonomous_driving")
                 .resolve("HighwayEnvironment_Base.py");
+    }
+
+    private Path resolveBundledAiRoot() {
+        Path cwd = Paths.get(System.getProperty("user.dir")).toAbsolutePath();
+        Path candidate = cwd;
+        while (candidate != null) {
+            Path aiRoot = candidate.resolve("AIModel");
+            if (Files.isRegularFile(aiRoot.resolve("HighwayEnvironment_Base.py"))) {
+                return aiRoot;
+            }
+            candidate = candidate.getParent();
+        }
+        return null;
     }
 
     private Path resolveCodesRoot() {

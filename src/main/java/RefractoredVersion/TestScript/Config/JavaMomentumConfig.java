@@ -22,8 +22,12 @@
 
 package RefractoredVersion.TestScript.Config;
 
+import RefractoredVersion.Engine.Action;
 import lombok.Getter;
 import lombok.Setter;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @Getter
 @Setter
@@ -37,12 +41,14 @@ public class JavaMomentumConfig extends Config {
     private int predictionTime = 3;
     private double maxTargetSpeed = 40.0;
     private boolean fixPrediction = false;
+    private String recoverInitialStateFile;
+    private ShieldType shieldType = ShieldType.ALL_SLOWER;
+    private List<Action> futureActions = new ArrayList<>();
+    @Deprecated
     private double minX;
+    @Deprecated
     private double maxX;
-    // when quickTest, it shows one rendered random run
-    private boolean quickTest;
-    // when genLogs, it runs multiple headless simulations and saves initial states
-    private boolean genLogs;
+    private TestFunction testFunction = TestFunction.SINGLE_RUN;
 
     public Integer getNumsOfSimulations() {
         return numOFSimulations;
@@ -52,7 +58,28 @@ public class JavaMomentumConfig extends Config {
         this.numOFSimulations = numsOfSimulations;
     }
 
+    public boolean isQuickTest() {
+        return testFunction == TestFunction.QUICK_TEST;
+    }
 
+    public void setQuickTest(boolean quickTest) {
+        if (quickTest) {
+            this.testFunction = TestFunction.QUICK_TEST;
+        } else if (this.testFunction == TestFunction.QUICK_TEST) {
+            this.testFunction = TestFunction.SINGLE_RUN;
+        }
+    }
 
+    public boolean isGenLogs() {
+        return testFunction == TestFunction.GEN_LOGS;
+    }
+
+    public void setGenLogs(boolean genLogs) {
+        if (genLogs) {
+            this.testFunction = TestFunction.GEN_LOGS;
+        } else if (this.testFunction == TestFunction.GEN_LOGS) {
+            this.testFunction = TestFunction.SINGLE_RUN;
+        }
+    }
 
 }

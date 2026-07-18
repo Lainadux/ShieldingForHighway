@@ -23,6 +23,9 @@
 package RefractoredVersion.Engine;
 
 import RefractoredVersion.Shield.AllSlowerShield;
+import RefractoredVersion.Shield.ExploreFutureActionShield;
+import RefractoredVersion.TestScript.Config.JavaMomentumConfig;
+import RefractoredVersion.TestScript.Config.ShieldType;
 
 import java.util.ArrayList;
 
@@ -31,6 +34,8 @@ public class EgoVehicle extends Vehicle implements NonNpcVehicle, NotControlledB
     public int sensorRange = 100;
     public ArrayList<Vehicle> detectedVehicles = new ArrayList<>();
     private JavaHighwayAiClient.AiDecision lastAiDecision = new JavaHighwayAiClient.AiDecision();
+    private int aiDecisionCount = 0;
+    private int rejectedAiDecisionCount = 0;
 
     public ArrayList<Vehicle> getDetectedVehicles() {
         detectedVehicles.clear();
@@ -68,45 +73,65 @@ public class EgoVehicle extends Vehicle implements NonNpcVehicle, NotControlledB
     private void applyAiAction(JavaHighwayAiClient.AiDecision decision) throws Exception {
         this.lastAiDecision = decision;
         Action action = parseAction(decision);
-        AllSlowerShield shield = new AllSlowerShield(this.getEngine());
-        boolean safe = shield.verifySafe(action);
+        ShieldDecision shieldDecision = verifyActionSafe(action);
         if (shouldPrintDiagnostics()) {
             System.out.printf("%s AI decision: action=%d, action_name=%s, parsed_action=%s%n",
-                    safe ? "Safe" : "Unsafe",
+                    shieldDecision.safe ? "Safe" : "Unsafe",
                     decision.action,
                     decision.action_name,
                     action);
-            System.out.println(shield.getUnsafeDiagnosis());
+            System.out.println(shieldDecision.diagnosis);
         }
-        if (!safe) {
+        if (!shieldDecision.safe) {
             action = Action.SLOWER;
         }
+        recordAiDecision(!shieldDecision.safe);
         applyAction(action);
+    }
+
+    private ShieldDecision verifyActionSafe(Action action) throws Exception {
+        JavaMomentumConfig config = this.getEngine().config;
+        ShieldType shieldType = config == null || config.getShieldType() == null
+                ? ShieldType.ALL_SLOWER
+                : config.getShieldType();
+        switch (shieldType) {
+            case ALL_SLOWER:
+                AllSlowerShield allSlowerShield = new AllSlowerShield(this.getEngine());
+                boolean allSlowerSafe = allSlowerShield.verifySafe(action);
+                return new ShieldDecision(allSlowerSafe, allSlowerShield.getUnsafeDiagnosis());
+            case EXPLORE_FUTURE_ACTION:
+                if (config.getFutureActions() == null) {
+                    throw new IllegalArgumentException(
+                            "futureActions must be set when shieldType is EXPLORE_FUTURE_ACTION");
+                }
+                ExploreFutureActionShield exploreShield =
+                        new ExploreFutureActionShield(this.getEngine(), config.getFutureActions());
+                boolean exploreSafe = exploreShield.verifySafe(action);
+                return new ShieldDecision(exploreSafe, exploreShield.getUnsafeDiagnosis());
+            default:
+                throw new IllegalArgumentException("Unsupported shield type: " + shieldType);
+        }
+    }
+
+    private static class ShieldDecision {
+        private final boolean safe;
+        private final String diagnosis;
+
+        private ShieldDecision(boolean safe, String diagnosis) {
+            this.safe = safe;
+            this.diagnosis = diagnosis;
+        }
+    }
+
+    private void recordAiDecision(boolean rejected) {
+        aiDecisionCount++;
+        if (rejected) {
+            rejectedAiDecisionCount++;
+        }
     }
 
     private boolean shouldPrintDiagnostics() {
         return this.getEngine().config == null || !this.getEngine().config.isGenLogs();
-    }
-
-    private void applyAction(Action action) {
-        switch (action) {
-            case LANE_LEFT:
-                this.setTargetLaneIndex(Math.max(0, this.getLaneIndex() - 1));
-                break;
-            case LANE_RIGHT:
-                this.setTargetLaneIndex(Math.min(this.getEngine().numLanes - 1, this.getLaneIndex() + 1));
-                break;
-            case FASTER:
-                this.targetSpeed = clipTargetSpeed(this.targetSpeed + 5);
-                break;
-            case SLOWER:
-                this.targetSpeed = clipTargetSpeed(this.targetSpeed - 5);
-                break;
-            case IDLE:
-                break;
-            default:
-                throw new IllegalArgumentException("Unsupported AI action: " + action);
-        }
     }
 
     private Action parseAction(JavaHighwayAiClient.AiDecision decision) {
@@ -120,12 +145,12 @@ public class EgoVehicle extends Vehicle implements NonNpcVehicle, NotControlledB
         return lastAiDecision;
     }
 
-    private double clipTargetSpeed(double targetSpeed) {
-        return Math.max(0.0, Math.min(maxTargetSpeed(), targetSpeed));
+    public int getAiDecisionCount() {
+        return aiDecisionCount;
     }
 
-    private double maxTargetSpeed() {
-        return this.getEngine().config == null ? 40.0 : this.getEngine().config.getMaxTargetSpeed();
+    public int getRejectedAiDecisionCount() {
+        return rejectedAiDecisionCount;
     }
 
     @Override

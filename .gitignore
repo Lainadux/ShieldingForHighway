@@ -4,3 +4,7 @@ out/
 *.class
 logs/
 src/main/java/RefractoredVersion/logs/
+AIModel/env/
+env/
+venv/
+.venv/

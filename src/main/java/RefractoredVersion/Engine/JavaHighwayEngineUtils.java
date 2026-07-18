@@ -94,6 +94,14 @@ public class JavaHighwayEngineUtils {
     }
 
 
+    private static boolean isOnLaneWithMargin(Vehicle vehicle, int laneIndex) {
+        double laneCenterY = laneIndex * 4.0;
+        double lateral = vehicle.y - laneCenterY;
+        double halfLaneWidth = 2.0;
+        double margin = 1.0;
+        return Math.abs(lateral) <= halfLaneWidth + margin;
+    }
+
         public static int computeTargetLane(Vehicle vehicle, List<Vehicle> environments, List<Integer>possibleLanes, JavaHighwayEngine engine) throws Exception {
         if (vehicle instanceof PControlledVehicle) {
 //            ControlledVehicle ego = (ControlledVehicle) vehicle;
@@ -293,6 +301,7 @@ public class JavaHighwayEngineUtils {
 
         return d_star;
     }
+    // a new version of getFrontVehicle that considers a margin for lane detection
     public static Vehicle getFrontVehicle(Vehicle thisCar, List<Vehicle> environments, int LaneNo) throws Exception {
         if (!environments.contains(thisCar)) {
             throw new Exception("thisCar is not in environments");
@@ -300,8 +309,9 @@ public class JavaHighwayEngineUtils {
 
         Vehicle frontVehicle = null;
         for (Vehicle v : environments) {
-//            if (v.lane_index == LaneNo && v.x > thisCar.x) {
-            if (v.getLaneIndex() == LaneNo && v.x > thisCar.x) {
+
+            //if (v.getLaneIndex() == LaneNo && v.x > thisCar.x) {
+            if (isOnLaneWithMargin(v, LaneNo) && v.x > thisCar.x){
                 if (frontVehicle == null || v.x < frontVehicle.x) {
                     frontVehicle = v;
                 }
@@ -316,8 +326,9 @@ public class JavaHighwayEngineUtils {
 
         Vehicle rearVehicle = null;
         for (Vehicle v : environments) {
-            //if (v.lane_index == LaneNo && v.x < thisCar.x) {
-            if (v.getLaneIndex() == LaneNo && v.x < thisCar.x) {
+           //
+            //if (v.getLaneIndex() == LaneNo && v.x < thisCar.x) {
+            if (isOnLaneWithMargin(v, LaneNo) && v.x > thisCar.x){
                 if (rearVehicle == null || v.x > rearVehicle.x) {
                     rearVehicle = v;
                 }

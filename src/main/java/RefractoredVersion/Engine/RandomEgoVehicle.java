@@ -30,28 +30,7 @@ public class RandomEgoVehicle extends Vehicle implements NonNpcVehicle, NotContr
     public void planAction() throws Exception {
         if (this.getEngine().isDecisionTime()){
             Action randomAction = Action.fromValue(ThreadLocalRandom.current().nextInt(5));
-            switch (randomAction) {
-                case FASTER:
-                    this.targetSpeed += 5;
-                    break;
-                case SLOWER:
-                    this.targetSpeed = Math.max(0.0, this.targetSpeed - 5);
-                    break;
-                case IDLE:
-                    break;
-                case LANE_LEFT:
-                    this.setTargetLaneIndex(Math.max(0, this.getTargetLaneIndex() - 1));
-                    break;
-                case LANE_RIGHT:
-                    this.setTargetLaneIndex(Math.min(2, this.getTargetLaneIndex() + 1));
-                    break;
-                default:
-                    break;
-            }
-
-        }
-        else{
-
+            applyAction(randomAction);
         }
 
         this.plannedAcceleration = JavaHighwayEngineUtils.computeIdmAcceleration(this, this.getEngine().vehicles);

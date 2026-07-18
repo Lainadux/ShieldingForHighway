@@ -1,26 +1,5 @@
-/*
- * STARK: Software Tool for the Analysis of Robustness in the unKnown environment
- *
- *                Copyright (C) 2023.
- *
- * See the NOTICE file distributed with this work for additional information
- * regarding copyright ownership.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *             http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
- * or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package RefractoredVersion.Shield;
+
 
 import RefractoredVersion.Engine.JavaHighwayEngine;
 import RefractoredVersion.Engine.JavaHighwayEngineUtils;
@@ -48,9 +27,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-//this is the basic version of the shield, all future action applys slower
-@Deprecated
-public class AllSlowerShield {
+// This version of shield take future actions a1a2a3...an into account
+// It tells if action sequence AI, a1, a2, a3, ..., an is safe or not
+
+public class ExploreFutureActionShield {
     private static final int DEFAULT_PREDICTION_TIME = 1;
     private static final int AUXILIARY_VAR_NUMS = AuxiliarySingletonVarTable.values().length;
     private static final int EVOLUTION_SEQUENCE_SIZE = 30;
@@ -63,7 +43,7 @@ public class AllSlowerShield {
     private static final double MIN_CLOSE_FRONT_GAP = 10.0;
     private static final double MAX_STABLE_RELATIVE_SPEED = 2.0;
     private static final double SAFE_RECEDING_RELATIVE_SPEED = 2.0;
-    private static final double AGGRESSIVE_V3_TTC_THRESHOLD = 3.0;
+    private static final double AGGRESSIVE_V3_TTC_THRESHOLD = 4.0;
     private static final double FIRST_SECOND_LOOKAHEAD_TIME = 1.0;
     private static final double FIRST_SECOND_MIN_FRONT_GAP = 2.0;
     private static final double CHANGE_LANE_REAR_THREAT_DISTANCE_THRESHOLD = 0.1;
@@ -74,9 +54,9 @@ public class AllSlowerShield {
     private static final double MIN_FRONT_ACCELERATION_UNCERTAINTY = 0.5;
     private static final double FIXED_PREDICTION_RANDOM_TARGET_DELTA = 1.0;
 
-    protected final JavaHighwayEngine sourceEngine;
-    protected final int predictionTime;
-    protected SandboxJavaHighwayEngine sandboxEngine;
+    private final JavaHighwayEngine sourceEngine;
+    private final int  predictionTime;
+    private SandboxJavaHighwayEngine sandboxEngine;
     private EvolutionSequence sequence;
     private double lastCollisionRobustness = Double.NaN;
     private double lastFirstSecondSafetyRobustness = Double.NaN;
@@ -85,27 +65,77 @@ public class AllSlowerShield {
     private double lastChangeLaneLowSpeedRobustness = Double.NaN;
     private double lastShieldRobustness = Double.NaN;
 
-    public AllSlowerShield(JavaHighwayEngine sourceEngine) {
-        this.sourceEngine = sourceEngine;
-        this.predictionTime = sourceEngine.config == null
-                ? DEFAULT_PREDICTION_TIME
-                : sourceEngine.config.getPredictionTime();
-        if(predictionTime>1) throw new IllegalArgumentException("In the refractored version, AllSlowerShield only supports predictionTime=1;" +
-                " use ExploreFutureActionShield for predictionTime>1, as predcitionTime >1 with all slower is a special case of ExploreFutureActionShield");
-    }
+    public final List<Action> futureActions = new ArrayList<>();
 
-    public AllSlowerShield(JavaHighwayEngine sourceEngine, int predictionTime) {
+    public ExploreFutureActionShield(JavaHighwayEngine sourceEngine, List<Action> futureActions) {
         this.sourceEngine = sourceEngine;
+        if (futureActions == null) {
+            throw new IllegalArgumentException("ExploreFutureActionShield future actions cannot be null");
+        }
+        this.predictionTime = futureActions.size() + 1;
+        this.futureActions.addAll(futureActions);
+
+    }
+/**
+ * Constructor for ExploreFutureActionShield class
+ * If you construct the shield with this constructor, it will initialize the future actions list with SLOWER actions for the specified prediction time.
+ * If you set predictionTime = 1, it is equivalent to the deprecated ALLSLOWER shield, where no future actions are considered
+ * (as we show that allslower can be reduced to a single action, the "allsower" is not an appropriate name for it though)
+ * @param sourceEngine The JavaHighwayEngine instance that this shield will use
+ * @param predictionTime The time period for which predictions will be made
+ */
+    public ExploreFutureActionShield(JavaHighwayEngine sourceEngine, int predictionTime) {
+
+        // Store the reference to the source engine
+        this.sourceEngine = sourceEngine;
+        if (predictionTime < 1) {
+            throw new IllegalArgumentException("predictionTime must be at least 1");
+        }
+        // Set the prediction time period
         this.predictionTime = predictionTime;
-    }
-    @Deprecated
-    public boolean verifySafe() throws Exception {
-        return verifySafe(Action.SLOWER);
+
+        // Initialize future actions list with SLOWER actions
+        // The loop runs predictionTime - 1 times to fill the list
+        for(int i = 0; i < predictionTime - 1; i++){
+            futureActions.add(Action.SLOWER);
+        }
     }
 
-    public boolean verifySafe(Action candidateAction) throws Exception {
-        List<List<List<Vehicle>>> sampleTraces = predictCandidateSampleTraces(candidateAction);
-        sequence = new FixedEvolutionSequence(toSampleSetsFromSampleTraces(sampleTraces, candidateAction));
+
+    private int lastPredictionStep(List<List<List<Vehicle>>> sampleTraces) {
+        return Math.max(0, sampleTraces.get(0).size() - 1);
+    }
+    public boolean verifySafe(Action candidateAction) throws Exception{
+        return verifySafeSequence(toActionSequence(candidateAction));
+    }
+
+    public EvolutionSequence getPredictionSequence(Action candidateAction) throws Exception {
+        sequence = buildPredictionSequence(toActionSequence(candidateAction));
+        return sequence;
+    }
+
+    public String getUnsafeDiagnosis() {
+        if (sequence == null) {
+            return "Shield diagnosis unavailable: verifySafe() has not been called.";
+        }
+        int lastStep = Math.max(0, sequence.length() - 1);
+        return sequence.get(lastStep).stream()
+                .findFirst()
+                .map(systemState -> diagnoseState(systemState.getDataState(), lastStep))
+                .orElse("Shield diagnosis unavailable: no prediction state available.");
+    }
+
+    private List<Action> toActionSequence(Action candidateAction) {
+        List<Action> actionSequence = new ArrayList<>();
+        actionSequence.add(candidateAction);
+        actionSequence.addAll(futureActions);
+        return actionSequence;
+    }
+
+    private boolean verifySafeSequence(List<Action> actionSequence) throws Exception {
+
+        List<List<List<Vehicle>>> sampleTraces = predictCandidateSampleTraces(actionSequence);
+        sequence = new FixedEvolutionSequence(toSampleSetsFromSampleTraces(sampleTraces, actionSequence.get(0)));
 
         int lastStep = lastPredictionStep(sampleTraces);
         int firstSecondLastStep = Math.min(sourceEngine.getFrequency() - 1, lastStep);
@@ -158,120 +188,141 @@ public class AllSlowerShield {
         lastChangeLaneLowSpeedRobustness = semantics.eval(changeLaneLowSpeedAtDecisionStep)
                 .eval(EVOLUTION_SEQUENCE_SIZE, 0, sequence);
         lastShieldRobustness = semantics.eval(shieldCondition).eval(EVOLUTION_SEQUENCE_SIZE, 0, sequence);
+
         return lastShieldRobustness >= MIN_ACCEPTABLE_ROBUSTNESS;
+
+    }
+    private EvolutionSequence buildPredictionSequence(List<Action> actionSequence) throws Exception {
+        return new FixedEvolutionSequence(
+                toSampleSetsFromSampleTraces(predictCandidateSampleTraces(actionSequence), actionSequence.get(0)));
     }
 
-    public boolean hasCollision() {
-        return sandboxEngine != null && sandboxEngine.hasCollision;
-    }
-
-    public boolean hasNpcCollision() {
-        return sandboxEngine != null && sandboxEngine.hasNpcCollision;
-    }
-
-    public boolean hasNonNpcVehicleCollision() {
-        return sandboxEngine != null && sandboxEngine.hasNonNpcVehicleCollision;
-    }
-
-    public SandboxJavaHighwayEngine getSandboxEngine() {
-        return sandboxEngine;
-    }
-
-    public EvolutionSequence getSequence() {
-        return sequence;
-    }
-
-    public double getLastCollisionRobustness() {
-        return lastCollisionRobustness;
-    }
-
-    public double getLastFirstSecondSafetyRobustness() {
-        return lastFirstSecondSafetyRobustness;
-    }
-
-    public double getLastStabilityRobustness() {
-        return lastStabilityRobustness;
-    }
-
-    public double getLastChangeLaneRearThreatRobustness() {
-        return lastChangeLaneRearThreatRobustness;
-    }
-
-    public double getLastChangeLaneLowSpeedRobustness() {
-        return lastChangeLaneLowSpeedRobustness;
-    }
-
-    public double getLastShieldRobustness() {
-        return lastShieldRobustness;
-    }
-
-    public String getUnsafeDiagnosis() {
-        if (sequence == null) {
-            return "Shield diagnosis unavailable: verifySafe() has not been called.";
-        }
-        int lastStep = Math.max(0, sequence.length() - 1);
-        return sequence.get(lastStep).stream()
-                .findFirst()
-                .map(systemState -> diagnoseState(systemState.getDataState(), lastStep))
-                .orElse("Shield diagnosis unavailable: no prediction state available.");
-    }
-
-    public String getFailedSafetyCriteriaCsv() {
-        List<String> failed = new ArrayList<>();
-        if (lastCollisionRobustness < MIN_ACCEPTABLE_ROBUSTNESS) {
-            failed.add("collision");
-        }
-        if (lastFirstSecondSafetyRobustness < MIN_ACCEPTABLE_ROBUSTNESS) {
-            failed.add("firstSecondSafety");
-        }
-        if (lastStabilityRobustness < MIN_ACCEPTABLE_ROBUSTNESS) {
-            failed.add("stability");
-        }
-        if (lastChangeLaneRearThreatRobustness < MIN_ACCEPTABLE_ROBUSTNESS) {
-            failed.add("changeLaneRearThreat");
-        }
-        if (lastChangeLaneLowSpeedRobustness < MIN_ACCEPTABLE_ROBUSTNESS) {
-            failed.add("changeLaneLowSpeed");
-        }
-        return String.join(",", failed);
-    }
-
-    protected List<List<List<Vehicle>>> predictCandidateSampleTraces(Action candidateAction) throws Exception {
+    private List<List<List<Vehicle>>> predictCandidateSampleTraces(List<Action> actionSequence) throws Exception {
         List<List<List<Vehicle>>> sampleTraces = new ArrayList<>();
         for (int sample = 0; sample < EVOLUTION_SEQUENCE_SIZE; sample++) {
-            sampleTraces.add(predictCandidateTrace(candidateAction));
+            sampleTraces.add(predictCandidateTrace(actionSequence));
         }
         return sampleTraces;
     }
-
-    protected List<List<Vehicle>> predictCandidateTrace(Action candidateAction) throws Exception {
-        sandboxEngine = createSandboxEngine();
-        applyCandidateAction(candidateAction);
-
-        int predictionSteps = Math.max(1, predictionTime * sandboxEngine.getFrequency());
+    private List<List<Vehicle>> predictCandidateTrace(List<Action> actionSequence) throws Exception {
+        sandboxEngine = createSandboxEngine(actionSequence);
+        int predictionSteps = Math.max(1, actionSequence.size() * sandboxEngine.getFrequency());
         List<List<Vehicle>> trace = new ArrayList<>();
-        trace.add(deepCopyVehicles(sandboxEngine.vehicles));
+        trace.add(deepCopyVehicles(sandboxEngine.vehicles, actionSequence));
         for (int i = 1; i < predictionSteps; i++) {
             planSandboxActions();
             sandboxEngine.applyPhysics();
             sandboxEngine.checkCollision();
-            trace.add(deepCopyVehicles(sandboxEngine.vehicles));
+            trace.add(deepCopyVehicles(sandboxEngine.vehicles, actionSequence));
             sandboxEngine.timeElapsed += sandboxEngine.getDt();
             sandboxEngine.stepsTaken += 1;
         }
         return trace;
     }
-
-    private List<SampleSet<SystemState>> toSampleSets(List<List<Vehicle>> trace) {
-        List<SampleSet<SystemState>> sampleSets = new ArrayList<>();
-        List<boolean[]> historicalFlags = historicalCutInIntentByStep(trace);
-        for (int step = 0; step < trace.size(); step++) {
-            sampleSets.add(new SampleSet<>(List.of(new PerceivedSystemState(
-                    toDataState(trace.get(step), historicalFlags.get(step), null)))));
+    private void planSandboxActions() throws Exception {
+        for (Vehicle vehicle : sandboxEngine.vehicles) {
+            if (vehicle instanceof NonNpcVehicle) {
+                ((NonNpcVehicle) vehicle).planAction();
+            } else {
+                vehicle.planAction(sandboxEngine.vehicles);
+            }
         }
-        return sampleSets;
+    }
+    private SandboxJavaHighwayEngine createSandboxEngine(List<Action> actionSequence) {
+        SandboxJavaHighwayEngine sandbox = new SandboxJavaHighwayEngine();
+        sandbox.setFrequency(sourceEngine.getFrequency());
+        sandbox.config = sourceEngine.config;
+        sandbox.numLanes = sourceEngine.numLanes;
+        sandbox.timeElapsed = 0.0;
+        sandbox.stepsTaken = 0;
+        sandbox.vehicles = deepCopyVehicles(sourceEngine.vehicles, actionSequence);
+        for (Vehicle vehicle : sandbox.vehicles) {
+            vehicle.setEngine(sandbox);
+        }
+        return sandbox;
     }
 
+    private List<Vehicle> deepCopyVehicles(List<Vehicle> vehicles) {
+        return deepCopyVehicles(vehicles, futureActions);
+    }
+
+    private List<Vehicle> deepCopyVehicles(List<Vehicle> vehicles, List<Action> actionSequence) {
+        List<Vehicle> copies = new ArrayList<>();
+        for (Vehicle vehicle : vehicles) {
+            Vehicle copy = vehicle instanceof NonNpcVehicle
+                    ? new ShieldNonNpcVehicle(actionSequence)
+                    : new Vehicle();
+            copyVehicleState(vehicle, copy);
+            copies.add(copy);
+        }
+        return copies;
+    }
+    private static class ShieldNonNpcVehicle extends Vehicle implements NonNpcVehicle, PControlledVehicle {
+        private final List<Action> futureActions;
+
+        ShieldNonNpcVehicle(List<Action> futureActions) {
+            this.futureActions = List.copyOf(futureActions);
+        }
+        @Override
+        public void planAction() throws Exception {
+            if(this.getEngine().isDecisionTime()){
+                int actionIndex = this.getEngine().stepsTaken / this.getEngine().getFrequency();
+                if (actionIndex >= futureActions.size()) {
+                    throw new IllegalStateException(String.format(
+                            "Missing future action at decision index %d, futureActions size is %d",
+                            actionIndex,
+                            futureActions.size()
+                    ));
+                }
+                applyAction(futureActions.get(actionIndex));
+            }
+            this.plannedAcceleration = JavaHighwayEngineUtils.computeIdmAcceleration(this, this.getEngine().vehicles);
+            this.plannedSteering = JavaHighwayEngineUtils.computeSteering(this);
+
+        }
+    }
+    private void copyVehicleState(Vehicle source, Vehicle copy) {
+        copy.TAU_ACC = source.TAU_ACC;
+        copy.TAU_HEADING = source.TAU_HEADING;
+        copy.TAU_LATERAL = source.TAU_LATERAL;
+        copy.TAU_PURSUIT = source.TAU_PURSUIT;
+        copy.KP_A = source.KP_A;
+        copy.KP_HEADING = source.KP_HEADING;
+        copy.KP_LATERAL = source.KP_LATERAL;
+        copy.MAX_STEERING_ANGLE = source.MAX_STEERING_ANGLE;
+        copy.DELTA_SPEED = source.DELTA_SPEED;
+        copy.possible_lanes = source.possible_lanes.clone();
+        copy.karma_a_new = source.karma_a_new;
+        copy.mobil = source.mobil;
+        copy.targetSpeed = source.targetSpeed;
+        copy.id = source.id;
+        copy.politeness = source.politeness;
+        copy.cooldownTimer = Math.random();
+        copy.setTargetLaneIndex(source.getTargetLaneIndex());
+        copy.setLaneIndex(source.getLaneIndex());
+        copy.role = source.role;
+        copy.x = source.x;
+        copy.y = source.y;
+        copy.vx = source.vx;
+        copy.vy = source.vy;
+        copy.speed = source.speed;
+        copy.previousSecondSpeed = source.previousSecondSpeed;
+        copy.heading = source.heading;
+        copy.plannedAcceleration = source.plannedAcceleration;
+        copy.plannedSteering = source.plannedSteering;
+        if (isFixPredictionEnabled() && !(copy instanceof NonNpcVehicle)) {
+            copy.targetSpeed = getRandomFixedPredictionTargetSpeed(copy);
+        }
+
+    }
+    private boolean isFixPredictionEnabled() {
+        return sourceEngine.config != null && sourceEngine.config.isFixPrediction();
+    }
+    private double getRandomFixedPredictionTargetSpeed(Vehicle vehicle) {
+        double minTargetSpeed = Math.max(0.0, vehicle.speed - FIXED_PREDICTION_RANDOM_TARGET_DELTA);
+        double maxTargetSpeed = vehicle.speed + FIXED_PREDICTION_RANDOM_TARGET_DELTA;
+        return minTargetSpeed + Math.random() * (maxTargetSpeed - minTargetSpeed);
+    }
     private List<SampleSet<SystemState>> toSampleSetsFromSampleTraces(List<List<List<Vehicle>>> sampleTraces,
                                                                       Action initialIntention) {
         if (sampleTraces == null || sampleTraces.isEmpty() || sampleTraces.get(0).isEmpty()) {
@@ -300,7 +351,6 @@ public class AllSlowerShield {
         }
         return sampleSets;
     }
-
     private DataState toDataState(List<Vehicle> vehiclesAtStep) {
         return toDataState(vehiclesAtStep, new boolean[sourceEngine.vehicles.size()], null);
     }
@@ -343,14 +393,44 @@ public class AllSlowerShield {
         values.put(auxiliaryIndex(AuxiliarySingletonVarTable.finalFrontVehicleIndexInLeftLane), -1.0);
         values.put(auxiliaryIndex(AuxiliarySingletonVarTable.finalFrontVehicleIndexInRightLane), -1.0);
         values.put(auxiliaryIndex(AuxiliarySingletonVarTable.isInitialChangeLane),
-                isChangeLane(vehiclesAtStep) ? 1.0 : 0.0);
+                isCandidateChangeLane(vehiclesAtStep, initialIntention) ? 1.0 : 0.0);
         values.put(auxiliaryIndex(AuxiliarySingletonVarTable.initialIntention),
                 initialIntention == null ? -1.0 : initialIntention.getValue());
-        populateRearThreatAuxiliaryValues(values, vehicleCount);
+        populateRearThreatAuxiliaryValues(values, vehiclesAtStep);
 
         return new DataState(crashedIndex() + AUXILIARY_VAR_NUMS, index -> values.getOrDefault(index, Double.NaN));
     }
+    private int crashedIndex() {
+        return sourceEngine.vehicles.size() * VarTable.values().length;
+    }
 
+    private int auxiliaryIndex(AuxiliarySingletonVarTable variable) {
+        return crashedIndex() + variable.ordinal();
+    }
+    private boolean hasCollision(List<Vehicle> vehiclesAtStep) {
+        for (int i = 0; i < vehiclesAtStep.size(); i++) {
+            for (int j = i + 1; j < vehiclesAtStep.size(); j++) {
+                Vehicle first = vehiclesAtStep.get(i);
+                Vehicle second = vehiclesAtStep.get(j);
+                boolean overlapX = Math.abs(first.x - second.x) < (first.LENGTH / 2.0 + second.LENGTH / 2.0);
+                boolean overlapY = Math.abs(first.y - second.y) < (first.WIDTH / 2.0 + second.WIDTH / 2.0);
+                if (overlapX && overlapY) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+    private int vehicleOffset(int vehicleIndex) {
+        return vehicleIndex * VarTable.values().length;
+    }
+    private double parseVehicleId(String id, int fallback) {
+        try {
+            return Double.parseDouble(id);
+        } catch (Exception ignored) {
+            return fallback;
+        }
+    }
     private DataState resetCrashState(RandomGenerator rg, DataState state) {
         return state.apply(List.of(new DataStateUpdate(auxiliaryIndex(AuxiliarySingletonVarTable.crashed), 0.0)));
     }
@@ -572,7 +652,19 @@ public class AllSlowerShield {
 
         return aggressiveV3FrontStabilityPenalty(frontGap, closingSpeed);
     }
-
+    private double aggressiveV3FrontStabilityPenalty(double frontGap, double closingSpeed) {
+        if (closingSpeed <= 0.0) {
+            return 0.0;
+        }
+        if (frontGap < MIN_STABLE_FRONT_GAP) {
+            return Math.min(1.0, Math.max(0.0, closingSpeed - MAX_STABLE_RELATIVE_SPEED) / MAX_STABLE_RELATIVE_SPEED);
+        }
+        double ttc = frontGap / closingSpeed;
+        if (ttc > AGGRESSIVE_V3_TTC_THRESHOLD) {
+            return 0.0;
+        }
+        return Math.min(1.0, (AGGRESSIVE_V3_TTC_THRESHOLD - ttc) / AGGRESSIVE_V3_TTC_THRESHOLD);
+    }
     private String diagnoseState(DataState state, int lastStep) {
         int egoIndex = getEgoVehicleIndex(state);
         StringBuilder diagnosis = new StringBuilder();
@@ -620,36 +712,6 @@ public class AllSlowerShield {
                 frontVehicleStabilityPenalty(state), STABILITY_DISTANCE_THRESHOLD));
         return diagnosis.toString();
     }
-
-    private String vehicleId(DataState state, int vehicleIndex) {
-        return String.valueOf((int) state.get(vehicleOffset(vehicleIndex) + VarTable.id.ordinal()));
-    }
-
-    private double aggressiveV3FrontStabilityPenalty(double frontGap, double closingSpeed) {
-        if (closingSpeed <= 0.0) {
-            return 0.0;
-        }
-        if (frontGap < MIN_STABLE_FRONT_GAP) {
-            return Math.min(1.0, Math.max(0.0, closingSpeed - MAX_STABLE_RELATIVE_SPEED) / MAX_STABLE_RELATIVE_SPEED);
-        }
-        double ttc = frontGap / closingSpeed;
-        if (ttc > AGGRESSIVE_V3_TTC_THRESHOLD) {
-            return 0.0;
-        }
-        return Math.min(1.0, (AGGRESSIVE_V3_TTC_THRESHOLD - ttc) / AGGRESSIVE_V3_TTC_THRESHOLD);
-    }
-
-    private double calculateOneSecondWorstCaseSafetyGap(double egoVx, double frontVx, double egoAcceleration,
-                                                       double frontAcceleration) {
-        double egoSpeed = Math.max(0.0, egoVx);
-        double frontSpeed = Math.max(0.0, frontVx);
-        double frontWorstAcceleration = frontAcceleration - MIN_FRONT_ACCELERATION_UNCERTAINTY;
-        double relativeClosingDistance = (egoSpeed - frontSpeed) * FIRST_SECOND_LOOKAHEAD_TIME
-                + 0.5 * (egoAcceleration - frontWorstAcceleration)
-                * FIRST_SECOND_LOOKAHEAD_TIME * FIRST_SECOND_LOOKAHEAD_TIME;
-        return FIRST_SECOND_MIN_FRONT_GAP + Math.max(0.0, relativeClosingDistance);
-    }
-
     private int getEgoVehicleIndex(DataState state) {
         for (int i = 0; i < sourceEngine.vehicles.size(); i++) {
             if (state.get(vehicleOffset(i) + VarTable.role.ordinal()) == 0.0) {
@@ -658,24 +720,6 @@ public class AllSlowerShield {
         }
         return -1;
     }
-
-    private List<Integer> getVehiclesInAdjacentLanes(DataState state, int egoIndex) {
-        List<Integer> adjacentVehicles = new ArrayList<>();
-        int egoOffset = vehicleOffset(egoIndex);
-        int egoLane = (int) state.get(egoOffset + VarTable.lane_index.ordinal());
-        for (int i = 0; i < sourceEngine.vehicles.size(); i++) {
-            if (i == egoIndex) {
-                continue;
-            }
-            int offset = vehicleOffset(i);
-            int lane = (int) state.get(offset + VarTable.lane_index.ordinal());
-            if (lane >= egoLane - 1 && lane <= egoLane + 1) {
-                adjacentVehicles.add(i);
-            }
-        }
-        return adjacentVehicles;
-    }
-
     private List<Integer> getFinalStabilityReferenceVehicles(DataState state, int egoIndex) {
         int egoLane = (int) state.get(vehicleOffset(egoIndex) + VarTable.lane_index.ordinal());
         double egoX = state.get(vehicleOffset(egoIndex) + VarTable.x.ordinal());
@@ -710,7 +754,6 @@ public class AllSlowerShield {
         }
         return vehicles;
     }
-
     private boolean hasHistoricalCutInIntentTowardEgoLane(DataState state, int vehicleIndex, int egoLane) {
         int offset = vehicleOffset(vehicleIndex);
         double historicalCutInIntent = state.get(offset + VarTable.historicalCutInIntent.ordinal());
@@ -721,126 +764,64 @@ public class AllSlowerShield {
         return targetLane == egoLane;
     }
 
-    private List<boolean[]> historicalCutInIntentByStep(List<List<Vehicle>> trace) {
-        int vehicleCount = sourceEngine.vehicles.size();
-        boolean[] historical = new boolean[vehicleCount];
-        List<boolean[]> byStep = new ArrayList<>();
-        for (List<Vehicle> vehiclesAtStep : trace) {
-            updateHistoricalCutInIntent(historical, vehiclesAtStep);
-            byStep.add(historical.clone());
-        }
-        return byStep;
+    private boolean isCandidateChangeLane(List<Vehicle> vehiclesAtStep, Action initialIntention) {
+        return candidateTargetLane(vehiclesAtStep, initialIntention) >= 0;
     }
 
-    private void updateHistoricalCutInIntent(boolean[] historical, List<Vehicle> vehiclesAtStep) {
-        int egoLane = -1;
-        for (Vehicle vehicle : vehiclesAtStep) {
-            if ("EGO".equals(vehicle.role)) {
-                egoLane = vehicle.getLaneIndex();
-                break;
-            }
-        }
-        if (egoLane < 0) {
-            return;
-        }
-        for (int i = 0; i < vehiclesAtStep.size() && i < historical.length; i++) {
-            Vehicle vehicle = vehiclesAtStep.get(i);
-            if (!"EGO".equals(vehicle.role)
-                    && vehicle.getLaneIndex() != egoLane
-                    && vehicle.getTargetLaneIndex() == egoLane) {
-                historical[i] = true;
-            }
-        }
-    }
-
-    private int getFrontVehicleIndexInLane(DataState state, int egoIndex, int targetLane) {
-        if (egoIndex < 0) {
+    private int candidateTargetLane(List<Vehicle> vehiclesAtStep, Action initialIntention) {
+        int egoIndex = egoVehicleIndex(vehiclesAtStep);
+        if (egoIndex < 0 || initialIntention == null) {
             return -1;
         }
-
-        int egoOffset = vehicleOffset(egoIndex);
-        double egoX = state.get(egoOffset + VarTable.x.ordinal());
-        int frontIndex = -1;
-        double closestFrontX = Double.POSITIVE_INFINITY;
-        for (int i = 0; i < sourceEngine.vehicles.size(); i++) {
-            if (i == egoIndex) {
-                continue;
-            }
-            int offset = vehicleOffset(i);
-            int lane = (int) state.get(offset + VarTable.lane_index.ordinal());
-            double x = state.get(offset + VarTable.x.ordinal());
-            if (lane == targetLane && x > egoX && x < closestFrontX) {
-                frontIndex = i;
-                closestFrontX = x;
-            }
-        }
-        return frontIndex;
-    }
-
-    private int vehicleOffset(int vehicleIndex) {
-        return vehicleIndex * VarTable.values().length;
-    }
-
-    private int crashedIndex() {
-        return sourceEngine.vehicles.size() * VarTable.values().length;
-    }
-
-    private int auxiliaryIndex(AuxiliarySingletonVarTable variable) {
-        return crashedIndex() + variable.ordinal();
-    }
-
-    private int lastPredictionStep(List<List<List<Vehicle>>> sampleTraces) {
-        return Math.max(0, sampleTraces.get(0).size() - 1);
-    }
-
-    private double parseVehicleId(String id, int fallback) {
-        try {
-            return Double.parseDouble(id);
-        } catch (Exception ignored) {
-            return fallback;
+        Vehicle ego = vehiclesAtStep.get(egoIndex);
+        switch (initialIntention) {
+            case LANE_LEFT:
+                return Math.max(0, ego.getLaneIndex() - 1);
+            case LANE_RIGHT:
+                return Math.min(sourceEngine.numLanes - 1, ego.getLaneIndex() + 1);
+            default:
+                return -1;
         }
     }
 
-    private boolean isChangeLane(List<Vehicle> vehicles) {
-        for (Vehicle vehicle : vehicles) {
-            if ("EGO".equals(vehicle.role)) {
-                return vehicle.getLaneIndex() != vehicle.getTargetLaneIndex();
+    private int egoVehicleIndex(List<Vehicle> vehiclesAtStep) {
+        for (int i = 0; i < vehiclesAtStep.size(); i++) {
+            if ("EGO".equals(vehiclesAtStep.get(i).role)) {
+                return i;
             }
         }
-        return false;
+        return -1;
     }
 
-    private void populateRearThreatAuxiliaryValues(Map<Integer, Double> values, int vehicleCount) {
-        int egoIndex = initialEgoIndex(values, vehicleCount);
-        if (egoIndex < 0 || values.get(auxiliaryIndex(AuxiliarySingletonVarTable.isInitialChangeLane)) <= 0.0) {
+    private void populateRearThreatAuxiliaryValues(Map<Integer, Double> values, List<Vehicle> vehiclesAtStep) {
+        int egoIndex = egoVehicleIndex(vehiclesAtStep);
+        int targetLane = candidateTargetLane(vehiclesAtStep, initialIntention(values));
+        if (egoIndex < 0 || targetLane < 0) {
             values.put(auxiliaryIndex(AuxiliarySingletonVarTable.rearThreatRearVehicleIndex), -1.0);
             values.put(auxiliaryIndex(AuxiliarySingletonVarTable.rearThreatBeforeAcceleration), 0.0);
             return;
         }
 
-        int egoOffset = vehicleOffset(egoIndex);
-        int targetLane = values.get(egoOffset + VarTable.target_lane_index.ordinal()).intValue();
-        int rearIndex = initialRearVehicleIndexInLane(values, vehicleCount, egoIndex, targetLane);
+        int rearIndex = initialRearVehicleIndexInLane(values, sourceEngine.vehicles.size(), egoIndex, targetLane);
         if (rearIndex < 0) {
             values.put(auxiliaryIndex(AuxiliarySingletonVarTable.rearThreatRearVehicleIndex), -1.0);
             values.put(auxiliaryIndex(AuxiliarySingletonVarTable.rearThreatBeforeAcceleration), 0.0);
             return;
         }
 
-        int rearFrontIndex = initialFrontVehicleIndexInLaneExcluding(values, vehicleCount, rearIndex, targetLane, egoIndex);
+        int rearFrontIndex = initialFrontVehicleIndexInLaneExcluding(
+                values, sourceEngine.vehicles.size(), rearIndex, targetLane, egoIndex);
         values.put(auxiliaryIndex(AuxiliarySingletonVarTable.rearThreatRearVehicleIndex), (double) rearIndex);
         values.put(auxiliaryIndex(AuxiliarySingletonVarTable.rearThreatBeforeAcceleration),
                 initialRawIdmAcceleration(values, rearIndex, rearFrontIndex));
     }
 
-    private int initialEgoIndex(Map<Integer, Double> values, int vehicleCount) {
-        for (int i = 0; i < vehicleCount; i++) {
-            int offset = vehicleOffset(i);
-            if (values.get(offset + VarTable.role.ordinal()) == 0.0) {
-                return i;
-            }
+    private Action initialIntention(Map<Integer, Double> values) {
+        double value = values.getOrDefault(auxiliaryIndex(AuxiliarySingletonVarTable.initialIntention), -1.0);
+        if (value < 0.0 || Double.isNaN(value)) {
+            return null;
         }
-        return -1;
+        return Action.fromValue((int) Math.round(value));
     }
 
     private int initialRearVehicleIndexInLane(Map<Integer, Double> values, int vehicleCount, int egoIndex,
@@ -923,117 +904,71 @@ public class AllSlowerShield {
                 + closingSpeed * closingSpeed / (2.0 * CHANGE_LANE_REAR_MAX_BRAKE);
     }
 
-    private boolean hasCollision(List<Vehicle> vehiclesAtStep) {
-        for (int i = 0; i < vehiclesAtStep.size(); i++) {
-            for (int j = i + 1; j < vehiclesAtStep.size(); j++) {
-                Vehicle first = vehiclesAtStep.get(i);
-                Vehicle second = vehiclesAtStep.get(j);
-                boolean overlapX = Math.abs(first.x - second.x) < (first.LENGTH / 2.0 + second.LENGTH / 2.0);
-                boolean overlapY = Math.abs(first.y - second.y) < (first.WIDTH / 2.0 + second.WIDTH / 2.0);
-                if (overlapX && overlapY) {
-                    return true;
-                }
+    private List<boolean[]> historicalCutInIntentByStep(List<List<Vehicle>> trace) {
+        int vehicleCount = sourceEngine.vehicles.size();
+        boolean[] historical = new boolean[vehicleCount];
+        List<boolean[]> byStep = new ArrayList<>();
+        for (List<Vehicle> vehiclesAtStep : trace) {
+            updateHistoricalCutInIntent(historical, vehiclesAtStep);
+            byStep.add(historical.clone());
+        }
+        return byStep;
+    }
+
+    private void updateHistoricalCutInIntent(boolean[] historical, List<Vehicle> vehiclesAtStep) {
+        int egoLane = -1;
+        for (Vehicle vehicle : vehiclesAtStep) {
+            if ("EGO".equals(vehicle.role)) {
+                egoLane = vehicle.getLaneIndex();
+                break;
             }
         }
-        return false;
-    }
-
-    protected SandboxJavaHighwayEngine createSandboxEngine() {
-        SandboxJavaHighwayEngine sandbox = new SandboxJavaHighwayEngine();
-        sandbox.setFrequency(sourceEngine.getFrequency());
-        sandbox.config = sourceEngine.config;
-        sandbox.numLanes = sourceEngine.numLanes;
-        sandbox.timeElapsed = sourceEngine.timeElapsed;
-        sandbox.stepsTaken = sourceEngine.stepsTaken;
-        sandbox.vehicles = deepCopyVehicles(sourceEngine.vehicles);
-        for (Vehicle vehicle : sandbox.vehicles) {
-            vehicle.setEngine(sandbox);
+        if (egoLane < 0) {
+            return;
         }
-        return sandbox;
-    }
-
-    protected List<Vehicle> deepCopyVehicles(List<Vehicle> vehicles) {
-        List<Vehicle> copies = new ArrayList<>();
-        for (Vehicle vehicle : vehicles) {
-            Vehicle copy = vehicle instanceof NonNpcVehicle ? new ShieldNonNpcVehicle() : new Vehicle();
-            copyVehicleState(vehicle, copy);
-            copies.add(copy);
-        }
-        return copies;
-    }
-
-    protected void copyVehicleState(Vehicle source, Vehicle copy) {
-        copy.TAU_ACC = source.TAU_ACC;
-        copy.TAU_HEADING = source.TAU_HEADING;
-        copy.TAU_LATERAL = source.TAU_LATERAL;
-        copy.TAU_PURSUIT = source.TAU_PURSUIT;
-        copy.KP_A = source.KP_A;
-        copy.KP_HEADING = source.KP_HEADING;
-        copy.KP_LATERAL = source.KP_LATERAL;
-        copy.MAX_STEERING_ANGLE = source.MAX_STEERING_ANGLE;
-        copy.DELTA_SPEED = source.DELTA_SPEED;
-        copy.possible_lanes = source.possible_lanes.clone();
-        copy.karma_a_new = source.karma_a_new;
-        copy.mobil = source.mobil;
-        copy.targetSpeed = source.targetSpeed;
-        copy.id = source.id;
-        copy.politeness = source.politeness;
-        copy.cooldownTimer = Math.random();
-        copy.setTargetLaneIndex(source.getTargetLaneIndex());
-        copy.setLaneIndex(source.getLaneIndex());
-        copy.role = source.role;
-        copy.x = source.x;
-        copy.y = source.y;
-        copy.vx = source.vx;
-        copy.vy = source.vy;
-        copy.speed = source.speed;
-        copy.previousSecondSpeed = source.previousSecondSpeed;
-        copy.heading = source.heading;
-        copy.plannedAcceleration = source.plannedAcceleration;
-        copy.plannedSteering = source.plannedSteering;
-        if (isFixPredictionEnabled() && !(copy instanceof NonNpcVehicle)) {
-            copy.targetSpeed = getRandomFixedPredictionTargetSpeed(copy);
-        }
-    }
-
-    protected void applyCandidateAction(Action candidateAction) {
-        for (Vehicle vehicle : sandboxEngine.vehicles) {
-            if (vehicle instanceof NonNpcVehicle nonNpcVehicle) {
-                nonNpcVehicle.applyAction(candidateAction);
+        for (int i = 0; i < vehiclesAtStep.size() && i < historical.length; i++) {
+            Vehicle vehicle = vehiclesAtStep.get(i);
+            if (!"EGO".equals(vehicle.role)
+                    && vehicle.getLaneIndex() != egoLane
+                    && vehicle.getTargetLaneIndex() == egoLane) {
+                historical[i] = true;
             }
         }
     }
-
-    private boolean isFixPredictionEnabled() {
-        return sourceEngine.config != null && sourceEngine.config.isFixPrediction();
+    private String vehicleId(DataState state, int vehicleIndex) {
+        return String.valueOf((int) state.get(vehicleOffset(vehicleIndex) + VarTable.id.ordinal()));
     }
+    private int getFrontVehicleIndexInLane(DataState state, int egoIndex, int targetLane) {
+        if (egoIndex < 0) {
+            return -1;
+        }
 
-    private double getRandomFixedPredictionTargetSpeed(Vehicle vehicle) {
-        double minTargetSpeed = Math.max(0.0, vehicle.speed - FIXED_PREDICTION_RANDOM_TARGET_DELTA);
-        double maxTargetSpeed = vehicle.speed + FIXED_PREDICTION_RANDOM_TARGET_DELTA;
-        return minTargetSpeed + Math.random() * (maxTargetSpeed - minTargetSpeed);
-    }
-
-    protected void planSandboxActions() throws Exception {
-        for (Vehicle vehicle : sandboxEngine.vehicles) {
-            if (vehicle instanceof NonNpcVehicle) {
-                vehicle.plannedAcceleration = JavaHighwayEngineUtils.computeIdmAcceleration(vehicle, sandboxEngine.vehicles);
-                vehicle.plannedSteering = JavaHighwayEngineUtils.computeSteering(vehicle);
-            } else {
-                vehicle.planAction(sandboxEngine.vehicles);
+        int egoOffset = vehicleOffset(egoIndex);
+        double egoX = state.get(egoOffset + VarTable.x.ordinal());
+        int frontIndex = -1;
+        double closestFrontX = Double.POSITIVE_INFINITY;
+        for (int i = 0; i < sourceEngine.vehicles.size(); i++) {
+            if (i == egoIndex) {
+                continue;
+            }
+            int offset = vehicleOffset(i);
+            int lane = (int) state.get(offset + VarTable.lane_index.ordinal());
+            double x = state.get(offset + VarTable.x.ordinal());
+            if (lane == targetLane && x > egoX && x < closestFrontX) {
+                frontIndex = i;
+                closestFrontX = x;
             }
         }
+        return frontIndex;
     }
-
-    protected static class ShieldNonNpcVehicle extends Vehicle implements NonNpcVehicle, PControlledVehicle {
-        @Override
-        public void planAction() {
-        }
-    }
-
-    private static class FixedEvolutionSequence extends EvolutionSequence {
-        FixedEvolutionSequence(List<SampleSet<SystemState>> sequence) {
-            super(null, new DefaultRandomGenerator(), sequence);
-        }
+    private double calculateOneSecondWorstCaseSafetyGap(double egoVx, double frontVx, double egoAcceleration,
+                                                        double frontAcceleration) {
+        double egoSpeed = Math.max(0.0, egoVx);
+        double frontSpeed = Math.max(0.0, frontVx);
+        double frontWorstAcceleration = frontAcceleration - MIN_FRONT_ACCELERATION_UNCERTAINTY;
+        double relativeClosingDistance = (egoSpeed - frontSpeed) * FIRST_SECOND_LOOKAHEAD_TIME
+                + 0.5 * (egoAcceleration - frontWorstAcceleration)
+                * FIRST_SECOND_LOOKAHEAD_TIME * FIRST_SECOND_LOOKAHEAD_TIME;
+        return FIRST_SECOND_MIN_FRONT_GAP + Math.max(0.0, relativeClosingDistance);
     }
 }

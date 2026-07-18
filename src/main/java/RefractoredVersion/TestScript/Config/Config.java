@@ -41,5 +41,8 @@ public abstract class Config {
 
     public String PATH_TO_SAVE = "";
 
+    public double getMaxTargetSpeed() {
+        return 0;
+    }
 }
 

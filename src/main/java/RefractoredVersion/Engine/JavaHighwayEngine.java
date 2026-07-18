@@ -22,7 +22,6 @@
 
 package RefractoredVersion.Engine;
 
-import RefractoredVersion.TestScript.Config.FallBackMode;
 import RefractoredVersion.TestScript.Config.JavaMomentumConfig;
 import lombok.Getter;
 
@@ -58,7 +57,7 @@ public class JavaHighwayEngine {
     public boolean isDecisionTime(){
         return stepsTaken % frequency == 0;
     }
-    public FallBackMode fallBackMode = FallBackMode.DEFAULT;
+
     public JavaMomentumConfig config;
     public List<Vehicle> vehicles;
     public int numLanes = 3;
@@ -375,6 +374,18 @@ public class JavaHighwayEngine {
         }
         return possibleLanes.stream().mapToInt(i -> i).toArray();
 
+    }
+
+    public double getEgoFinalX() {
+        if (vehicles == null || vehicles.isEmpty()) {
+            return Double.NaN;
+        }
+        for (Vehicle vehicle : vehicles) {
+            if ("EGO".equals(vehicle.role)) {
+                return vehicle.x;
+            }
+        }
+        return vehicles.get(0).x;
     }
 
 

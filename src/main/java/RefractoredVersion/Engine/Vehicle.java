@@ -123,6 +123,13 @@ public class Vehicle {
 
         return other.x - this.x;
     }
+    /**
+     * Plans the next action for the vehicle based on the current state of the environment.
+     * This method computes  acceleration, and steering for the vehicle.
+     *
+     * @param allVehicles List of all vehicles in the simulation environment.
+     * @throws Exception if an error occurs during action planning.
+     */
   public void planAction(List<Vehicle> allVehicles) throws Exception {
 
         //this.target_lane_index = EngineUtils.computeTargetLane(this, allVehicles, List.of(0, 1), this.engine);
