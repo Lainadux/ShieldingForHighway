@@ -182,6 +182,11 @@ public class Vehicle {
                             dx < (this.LENGTH + other.LENGTH) / 2.0
                                     && dy < (this.WIDTH + other.WIDTH) / 2.0;
                     if (colliding) {
+                        if (this instanceof EgoVehicle egoVehicle) {
+                            egoVehicle.recordCollisionWith(other);
+                        } else if (other instanceof EgoVehicle egoVehicle) {
+                            egoVehicle.recordCollisionWith(this);
+                        }
                         throw new RuntimeException(String.format(
                                 "A collision has been detected between vehicle %s(%s) and vehicle %s(%s). "
                                         + "v1=(%.2f, %.2f), v2=(%.2f, %.2f)",

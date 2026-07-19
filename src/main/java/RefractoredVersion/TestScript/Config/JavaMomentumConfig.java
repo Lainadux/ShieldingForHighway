@@ -38,11 +38,13 @@ public class JavaMomentumConfig extends Config {
     private MethodToGenInitialState methodToGenInitialState = MethodToGenInitialState.DEFAULT;
     private EgoType egoType = EgoType.RandomEgoVehicle;
     private int frequency = 40;
+    @Deprecated
     private int predictionTime = 3;
     private double maxTargetSpeed = 40.0;
     private boolean fixPrediction = false;
     private String recoverInitialStateFile;
     private ShieldType shieldType = ShieldType.ALL_SLOWER;
+    @Deprecated
     private List<Action> futureActions = new ArrayList<>();
     @Deprecated
     private double minX;

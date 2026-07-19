@@ -28,12 +28,17 @@ import RefractoredVersion.TestScript.Config.JavaMomentumConfig;
 import RefractoredVersion.TestScript.Config.ShieldType;
 
 import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.ThreadLocalRandom;
 
 public class EgoVehicle extends Vehicle implements NonNpcVehicle, NotControlledByMOBIL, PControlledVehicle{
     public AIProfile aiProfile = AIProfile.base;
     public int sensorRange = 100;
+    public int noisySensorOuterRange = 100;
     public ArrayList<Vehicle> detectedVehicles = new ArrayList<>();
-    private JavaHighwayAiClient.AiDecision lastAiDecision = new JavaHighwayAiClient.AiDecision();
+    protected JavaHighwayAiClient.AiDecision lastAiDecision = new JavaHighwayAiClient.AiDecision();
+    protected final List<BeforeCrashActionLog> beforeCrashActions = new ArrayList<>();
+    protected CollisionLog lastCollisionLog;
     private int aiDecisionCount = 0;
     private int rejectedAiDecisionCount = 0;
 
@@ -48,9 +53,47 @@ public class EgoVehicle extends Vehicle implements NonNpcVehicle, NotControlledB
             double longitudinalDistance = vehicle.x - this.x;
             if (Math.abs(longitudinalDistance) <= sensorRange) {
                 detectedVehicles.add(vehicle);
+            } else if (Math.abs(longitudinalDistance) <= sensorRange + noisySensorOuterRange) {
+                detectedVehicles.add(noisyPerceivedVehicle(vehicle));
             }
         }
         return detectedVehicles;
+    }
+
+    private Vehicle noisyPerceivedVehicle(Vehicle vehicle) {
+        ThreadLocalRandom random = ThreadLocalRandom.current();
+        Vehicle perceived = new Vehicle();
+        perceived.TAU_ACC = vehicle.TAU_ACC;
+        perceived.TAU_HEADING = vehicle.TAU_HEADING;
+        perceived.TAU_LATERAL = vehicle.TAU_LATERAL;
+        perceived.TAU_PURSUIT = vehicle.TAU_PURSUIT;
+        perceived.KP_A = vehicle.KP_A;
+        perceived.KP_HEADING = vehicle.KP_HEADING;
+        perceived.KP_LATERAL = vehicle.KP_LATERAL;
+        perceived.MAX_STEERING_ANGLE = vehicle.MAX_STEERING_ANGLE;
+        perceived.DELTA_SPEED = vehicle.DELTA_SPEED;
+        perceived.possible_lanes = vehicle.possible_lanes.clone();
+        perceived.karma_a_new = vehicle.karma_a_new;
+        perceived.mobil = vehicle.mobil;
+        perceived.targetSpeed = vehicle.targetSpeed;
+        perceived.id = vehicle.id;
+        perceived.politeness = vehicle.politeness;
+        perceived.cooldownTimer = vehicle.cooldownTimer;
+        perceived.setTargetLaneIndex(vehicle.getTargetLaneIndex());
+        perceived.setLaneIndex(vehicle.getLaneIndex());
+        perceived.role = vehicle.role;
+        perceived.x = vehicle.x + random.nextDouble(-5.0, 5.0);
+        perceived.y = vehicle.y;
+        double perceivedSpeed = Math.max(0.0, vehicle.speed + random.nextDouble(-2.0, 2.0));
+        perceived.speed = perceivedSpeed;
+        perceived.vx = Math.max(0.0, vehicle.vx + random.nextDouble(-2.0, 2.0));
+        perceived.vy = vehicle.vy;
+        perceived.previousSecondSpeed = vehicle.previousSecondSpeed;
+        perceived.heading = vehicle.heading;
+        perceived.plannedAcceleration = vehicle.plannedAcceleration;
+        perceived.plannedSteering = vehicle.plannedSteering;
+        perceived.setEngine(this.getEngine());
+        return perceived;
     }
 
 
@@ -70,7 +113,7 @@ public class EgoVehicle extends Vehicle implements NonNpcVehicle, NotControlledB
         this.plannedSteering = JavaHighwayEngineUtils.computeSteering(this);
     }
 
-    private void applyAiAction(JavaHighwayAiClient.AiDecision decision) throws Exception {
+    protected void applyAiAction(JavaHighwayAiClient.AiDecision decision) throws Exception {
         this.lastAiDecision = decision;
         Action action = parseAction(decision);
         ShieldDecision shieldDecision = verifyActionSafe(action);
@@ -85,11 +128,31 @@ public class EgoVehicle extends Vehicle implements NonNpcVehicle, NotControlledB
         if (!shieldDecision.safe) {
             action = Action.SLOWER;
         }
+        recordCrashLog(decision, parseAction(decision), shieldDecision, action);
         recordAiDecision(!shieldDecision.safe);
         applyAction(action);
     }
 
-    private ShieldDecision verifyActionSafe(Action action) throws Exception {
+    protected void recordCrashLog(JavaHighwayAiClient.AiDecision decision,
+                                  Action proposedAction,
+                                  ShieldDecision shieldDecision,
+                                  Action performedAction) {
+        beforeCrashActions.add(new BeforeCrashActionLog(
+                this.getEngine().stepsTaken,
+                this.getEngine().timeElapsed,
+                decision.action,
+                decision.action_name,
+                proposedAction,
+                shieldDecision.safe,
+                shieldDecision.diagnosis,
+                performedAction
+        ));
+        while (beforeCrashActions.size() > 3) {
+            beforeCrashActions.remove(0);
+        }
+    }
+
+    protected ShieldDecision verifyActionSafe(Action action) throws Exception {
         JavaMomentumConfig config = this.getEngine().config;
         ShieldType shieldType = config == null || config.getShieldType() == null
                 ? ShieldType.ALL_SLOWER
@@ -100,12 +163,11 @@ public class EgoVehicle extends Vehicle implements NonNpcVehicle, NotControlledB
                 boolean allSlowerSafe = allSlowerShield.verifySafe(action);
                 return new ShieldDecision(allSlowerSafe, allSlowerShield.getUnsafeDiagnosis());
             case EXPLORE_FUTURE_ACTION:
-                if (config.getFutureActions() == null) {
-                    throw new IllegalArgumentException(
-                            "futureActions must be set when shieldType is EXPLORE_FUTURE_ACTION");
-                }
+                ArrayList<Action> futureActions = config == null || config.getFutureActions() == null
+                        ? new ArrayList<>()
+                        : new ArrayList<>(config.getFutureActions());
                 ExploreFutureActionShield exploreShield =
-                        new ExploreFutureActionShield(this.getEngine(), config.getFutureActions());
+                        new ExploreFutureActionShield(this.getEngine(), futureActions);
                 boolean exploreSafe = exploreShield.verifySafe(action);
                 return new ShieldDecision(exploreSafe, exploreShield.getUnsafeDiagnosis());
             default:
@@ -113,28 +175,28 @@ public class EgoVehicle extends Vehicle implements NonNpcVehicle, NotControlledB
         }
     }
 
-    private static class ShieldDecision {
-        private final boolean safe;
-        private final String diagnosis;
+    protected static class ShieldDecision {
+        protected final boolean safe;
+        protected final String diagnosis;
 
-        private ShieldDecision(boolean safe, String diagnosis) {
+        protected ShieldDecision(boolean safe, String diagnosis) {
             this.safe = safe;
             this.diagnosis = diagnosis;
         }
     }
 
-    private void recordAiDecision(boolean rejected) {
+    protected void recordAiDecision(boolean rejected) {
         aiDecisionCount++;
         if (rejected) {
             rejectedAiDecisionCount++;
         }
     }
 
-    private boolean shouldPrintDiagnostics() {
+    protected boolean shouldPrintDiagnostics() {
         return this.getEngine().config == null || !this.getEngine().config.isGenLogs();
     }
 
-    private Action parseAction(JavaHighwayAiClient.AiDecision decision) {
+    protected Action parseAction(JavaHighwayAiClient.AiDecision decision) {
         if (decision.action_name != null && !decision.action_name.isBlank()) {
             return Action.valueOf(decision.action_name.trim().toUpperCase());
         }
@@ -156,5 +218,36 @@ public class EgoVehicle extends Vehicle implements NonNpcVehicle, NotControlledB
     @Override
     public void checkCollision() {
         super.checkCollision();
+    }
+
+    public void recordCollisionWith(Vehicle other) {
+        lastCollisionLog = new CollisionLog(
+                this.getEngine().stepsTaken,
+                this.getEngine().timeElapsed,
+                this.id,
+                this.role,
+                this.x,
+                this.y,
+                this.getLaneIndex(),
+                this.speed,
+                this.vx,
+                this.vy,
+                other.id,
+                other.role,
+                other.x,
+                other.y,
+                other.getLaneIndex(),
+                other.speed,
+                other.vx,
+                other.vy
+        );
+    }
+
+    public CollisionLog retrieveCrashCollisionLog() {
+        return lastCollisionLog;
+    }
+
+    public List<BeforeCrashActionLog> retrieveBeforeCrashActions(){
+        return new ArrayList<>(beforeCrashActions);
     }
 }

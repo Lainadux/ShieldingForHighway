@@ -25,6 +25,7 @@ package RefractoredVersion.Shield;
 import RefractoredVersion.Engine.JavaHighwayEngine;
 import RefractoredVersion.Engine.JavaHighwayEngineUtils;
 import RefractoredVersion.Engine.Action;
+import RefractoredVersion.Engine.EgoVehicle;
 import RefractoredVersion.Engine.NonNpcVehicle;
 import RefractoredVersion.Engine.PControlledVehicle;
 import RefractoredVersion.Engine.SandboxJavaHighwayEngine;
@@ -52,7 +53,6 @@ import java.util.Map;
 @Deprecated
 public class AllSlowerShield {
     private static final int DEFAULT_PREDICTION_TIME = 1;
-    private static final int AUXILIARY_VAR_NUMS = AuxiliarySingletonVarTable.values().length;
     private static final int EVOLUTION_SEQUENCE_SIZE = 30;
     private static final double CRASH_DISTANCE_THRESHOLD = 0.0;
     private static final double FIRST_SECOND_SAFETY_DISTANCE_THRESHOLD = 0.1;
@@ -77,6 +77,7 @@ public class AllSlowerShield {
     protected final JavaHighwayEngine sourceEngine;
     protected final int predictionTime;
     protected SandboxJavaHighwayEngine sandboxEngine;
+    private int predictionVehicleCount = -1;
     private EvolutionSequence sequence;
     private double lastCollisionRobustness = Double.NaN;
     private double lastFirstSecondSafetyRobustness = Double.NaN;
@@ -302,13 +303,13 @@ public class AllSlowerShield {
     }
 
     private DataState toDataState(List<Vehicle> vehiclesAtStep) {
-        return toDataState(vehiclesAtStep, new boolean[sourceEngine.vehicles.size()], null);
+        return toDataState(vehiclesAtStep, new boolean[vehicleCount()], null);
     }
 
     private DataState toDataState(List<Vehicle> vehiclesAtStep, boolean[] historicalCutInIntent,
                                   Action initialIntention) {
         Map<Integer, Double> values = new HashMap<>();
-        int vehicleCount = sourceEngine.vehicles.size();
+        int vehicleCount = vehicleCount();
 
         for (int i = 0; i < vehicleCount; i++) {
             Vehicle vehicle = i < vehiclesAtStep.size() ? vehiclesAtStep.get(i) : sourceEngine.vehicles.get(i);
@@ -348,7 +349,8 @@ public class AllSlowerShield {
                 initialIntention == null ? -1.0 : initialIntention.getValue());
         populateRearThreatAuxiliaryValues(values, vehicleCount);
 
-        return new DataState(crashedIndex() + AUXILIARY_VAR_NUMS, index -> values.getOrDefault(index, Double.NaN));
+        return new DataState(AuxiliarySingletonVarTable.stateSize(vehicleCount()),
+                index -> values.getOrDefault(index, Double.NaN));
     }
 
     private DataState resetCrashState(RandomGenerator rg, DataState state) {
@@ -453,7 +455,7 @@ public class AllSlowerShield {
         updates.add(new DataStateUpdate(egoOffset + VarTable.lane_index.ordinal(), rearLane));
         updates.add(new DataStateUpdate(egoOffset + VarTable.target_lane_index.ordinal(), rearLane));
 
-        for (int i = 0; i < sourceEngine.vehicles.size(); i++) {
+        for (int i = 0; i < vehicleCount(); i++) {
             if (i == egoIndex || i == rearIndex) {
                 continue;
             }
@@ -651,7 +653,7 @@ public class AllSlowerShield {
     }
 
     private int getEgoVehicleIndex(DataState state) {
-        for (int i = 0; i < sourceEngine.vehicles.size(); i++) {
+        for (int i = 0; i < vehicleCount(); i++) {
             if (state.get(vehicleOffset(i) + VarTable.role.ordinal()) == 0.0) {
                 return i;
             }
@@ -663,7 +665,7 @@ public class AllSlowerShield {
         List<Integer> adjacentVehicles = new ArrayList<>();
         int egoOffset = vehicleOffset(egoIndex);
         int egoLane = (int) state.get(egoOffset + VarTable.lane_index.ordinal());
-        for (int i = 0; i < sourceEngine.vehicles.size(); i++) {
+        for (int i = 0; i < vehicleCount(); i++) {
             if (i == egoIndex) {
                 continue;
             }
@@ -688,7 +690,7 @@ public class AllSlowerShield {
             closestReferenceX = state.get(vehicleOffset(frontIndex) + VarTable.x.ordinal());
         }
 
-        for (int i = 0; i < sourceEngine.vehicles.size(); i++) {
+        for (int i = 0; i < vehicleCount(); i++) {
             if (i == egoIndex) {
                 continue;
             }
@@ -722,7 +724,7 @@ public class AllSlowerShield {
     }
 
     private List<boolean[]> historicalCutInIntentByStep(List<List<Vehicle>> trace) {
-        int vehicleCount = sourceEngine.vehicles.size();
+        int vehicleCount = vehicleCount();
         boolean[] historical = new boolean[vehicleCount];
         List<boolean[]> byStep = new ArrayList<>();
         for (List<Vehicle> vehiclesAtStep : trace) {
@@ -762,7 +764,7 @@ public class AllSlowerShield {
         double egoX = state.get(egoOffset + VarTable.x.ordinal());
         int frontIndex = -1;
         double closestFrontX = Double.POSITIVE_INFINITY;
-        for (int i = 0; i < sourceEngine.vehicles.size(); i++) {
+        for (int i = 0; i < vehicleCount(); i++) {
             if (i == egoIndex) {
                 continue;
             }
@@ -781,12 +783,12 @@ public class AllSlowerShield {
         return vehicleIndex * VarTable.values().length;
     }
 
-    private int crashedIndex() {
-        return sourceEngine.vehicles.size() * VarTable.values().length;
+    private int auxiliaryIndex(AuxiliarySingletonVarTable variable) {
+        return AuxiliarySingletonVarTable.index(vehicleCount(), variable);
     }
 
-    private int auxiliaryIndex(AuxiliarySingletonVarTable variable) {
-        return crashedIndex() + variable.ordinal();
+    private int vehicleCount() {
+        return predictionVehicleCount > 0 ? predictionVehicleCount : sourceEngine.vehicles.size();
     }
 
     private int lastPredictionStep(List<List<List<Vehicle>>> sampleTraces) {
@@ -910,7 +912,7 @@ public class AllSlowerShield {
         int rearIndex = (int) Math.round(
                 state.get(auxiliaryIndex(AuxiliarySingletonVarTable.rearThreatRearVehicleIndex)));
         if (rearIndex < 0
-                || rearIndex >= sourceEngine.vehicles.size()
+                || rearIndex >= vehicleCount()
                 || state.get(auxiliaryIndex(AuxiliarySingletonVarTable.isInitialChangeLane)) <= 0.0) {
             return -1;
         }
@@ -945,17 +947,27 @@ public class AllSlowerShield {
         sandbox.numLanes = sourceEngine.numLanes;
         sandbox.timeElapsed = sourceEngine.timeElapsed;
         sandbox.stepsTaken = sourceEngine.stepsTaken;
-        sandbox.vehicles = deepCopyVehicles(sourceEngine.vehicles);
+        sandbox.vehicles = deepCopyVehicles(detectedVehiclesForSandbox());
+        predictionVehicleCount = sandbox.vehicles.size();
         for (Vehicle vehicle : sandbox.vehicles) {
             vehicle.setEngine(sandbox);
         }
         return sandbox;
     }
 
+    private List<Vehicle> detectedVehiclesForSandbox() {
+        for (Vehicle vehicle : sourceEngine.vehicles) {
+            if (vehicle instanceof EgoVehicle egoVehicle) {
+                return new ArrayList<>(egoVehicle.getDetectedVehicles());
+            }
+        }
+        throw new IllegalStateException("Cannot create sandbox engine without an EgoVehicle");
+    }
+
     protected List<Vehicle> deepCopyVehicles(List<Vehicle> vehicles) {
         List<Vehicle> copies = new ArrayList<>();
         for (Vehicle vehicle : vehicles) {
-            Vehicle copy = vehicle instanceof NonNpcVehicle ? new ShieldNonNpcVehicle() : new Vehicle();
+            Vehicle copy = vehicle instanceof NonNpcVehicle ? new ShieldNonNpcVehicle() : new ShieldNpcVehicle();
             copyVehicleState(vehicle, copy);
             copies.add(copy);
         }
@@ -1028,6 +1040,20 @@ public class AllSlowerShield {
     protected static class ShieldNonNpcVehicle extends Vehicle implements NonNpcVehicle, PControlledVehicle {
         @Override
         public void planAction() {
+        }
+    }
+
+    protected static class ShieldNpcVehicle extends Vehicle {
+        @Override
+        public void planAction(List<Vehicle> allVehicles) throws Exception {
+            this.setTargetLaneIndex(JavaHighwayEngineUtils.sandboxComputeTargetLane(
+                    this,
+                    allVehicles,
+                    List.of(0, 1),
+                    this.getEngine()
+            ));
+            this.plannedAcceleration = JavaHighwayEngineUtils.computeIdmAcceleration(this, allVehicles);
+            this.plannedSteering = JavaHighwayEngineUtils.computeSteering(this);
         }
     }
 

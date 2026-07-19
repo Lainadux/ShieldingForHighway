@@ -26,7 +26,10 @@ import RefractoredVersion.Engine.JavaHighwayEngine;
 import RefractoredVersion.Engine.JavaHighwayAiClient;
 import RefractoredVersion.Engine.Action;
 import RefractoredVersion.Engine.AIProfile;
+import RefractoredVersion.Engine.BeforeCrashActionLog;
+import RefractoredVersion.Engine.CollisionLog;
 import RefractoredVersion.Engine.EgoVehicle;
+import RefractoredVersion.Engine.ExploreFutureEgo;
 import RefractoredVersion.Engine.RandomEgoVehicle;
 import RefractoredVersion.Engine.Vehicle;
 import RefractoredVersion.Engine.VehicleGenerator;
@@ -50,6 +53,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -86,7 +90,11 @@ public class Runner {
             List<Future<?>> futures = new ArrayList<>();
             AtomicInteger completed = new AtomicInteger(0);
             GenLogStatistics statistics = new GenLogStatistics(simulations);
+            List<CrashDetail> crashDetails = Collections.synchronizedList(new ArrayList<>());
             try {
+                if (shouldSaveLogs(javaMomentumConfig)) {
+                    saveRunMetadata(javaMomentumConfig);
+                }
                 for(int i = 0; i < simulations; i++){
                     final int simulationIndex = i;
                     futures.add(executor.submit(() -> {
@@ -96,6 +104,7 @@ public class Runner {
                             if (result.crashed) {
                                 System.err.println("Simulation " + simulationIndex + " crashed: "
                                         + result.crashException.getMessage());
+                                crashDetails.add(new CrashDetail(simulationIndex, result));
                             }
                         } catch (Exception e) {
                             throw new RuntimeException(e);
@@ -120,6 +129,8 @@ public class Runner {
                 statistics.print();
                 if (shouldSaveLogs(javaMomentumConfig)) {
                     saveGenLogSummary(javaMomentumConfig, statistics.snapshot());
+                    saveGenLogStatFiles(javaMomentumConfig, statistics.snapshot());
+                    saveCrashDetails(javaMomentumConfig, crashDetails);
                 }
             } finally {
                 executor.shutdownNow();
@@ -183,13 +194,15 @@ public class Runner {
                     }
                 }
                 return new SimulationRunResult(initialStateJson, false, null, getAiDecisionCount(realWorld),
-                        getRejectedAiDecisionCount(realWorld), realWorld.getEgoFinalX());
+                        getRejectedAiDecisionCount(realWorld), realWorld.getEgoFinalX(),
+                        getBeforeCrashActions(realWorld), getCollisionLog(realWorld));
             } catch (RuntimeException e) {
                 if (!captureRuntimeCrash) {
                     throw e;
                 }
                 return new SimulationRunResult(initialStateJson, true, e, getAiDecisionCount(realWorld),
-                        getRejectedAiDecisionCount(realWorld), realWorld.getEgoFinalX());
+                        getRejectedAiDecisionCount(realWorld), realWorld.getEgoFinalX(),
+                        getBeforeCrashActions(realWorld), getCollisionLog(realWorld));
             }
         }
 
@@ -206,6 +219,16 @@ public class Runner {
         return egoVehicle == null ? 0 : egoVehicle.getRejectedAiDecisionCount();
     }
 
+    private List<BeforeCrashActionLog> getBeforeCrashActions(JavaHighwayEngine engine) {
+        EgoVehicle egoVehicle = getEgoVehicle(engine);
+        return egoVehicle == null ? List.of() : egoVehicle.retrieveBeforeCrashActions();
+    }
+
+    private CollisionLog getCollisionLog(JavaHighwayEngine engine) {
+        EgoVehicle egoVehicle = getEgoVehicle(engine);
+        return egoVehicle == null ? null : egoVehicle.retrieveCrashCollisionLog();
+    }
+
     private EgoVehicle getEgoVehicle(JavaHighwayEngine engine) {
         if (engine.vehicles == null) {
             return null;
@@ -219,11 +242,6 @@ public class Runner {
     }
 
     private void validateShieldConfig(JavaMomentumConfig config) {
-        if (config.getShieldType() == ShieldType.EXPLORE_FUTURE_ACTION
-                && config.getFutureActions() == null) {
-            throw new IllegalArgumentException(
-                    "futureActions must be set when shieldType is EXPLORE_FUTURE_ACTION");
-        }
     }
 
     private List<Vehicle> loadVehiclesFromLog(Path path, JavaMomentumConfig config) throws IOException {
@@ -250,6 +268,11 @@ public class Runner {
                 AIProfile aiProfile = config.getAiProfile() == null ? AIProfile.base : config.getAiProfile();
                 egoVehicle.aiProfile = aiProfile;
                 return egoVehicle;
+            case ExploreFutureEgo:
+                ExploreFutureEgo exploreFutureEgo = new ExploreFutureEgo();
+                AIProfile exploreFutureAiProfile = config.getAiProfile() == null ? AIProfile.base : config.getAiProfile();
+                exploreFutureEgo.aiProfile = exploreFutureAiProfile;
+                return exploreFutureEgo;
             case RandomEgoVehicle:
                 return new RandomEgoVehicle();
             default:
@@ -295,22 +318,29 @@ public class Runner {
     private void saveInitialStateLog(JavaMomentumConfig config, String initialStateJson, boolean crashed, int simulationIndex) {
         String prefix = crashed ? "crashed_" : "safe_";
         String timestamp = LocalDateTime.now().format(LOG_TIME_FORMAT);
-        Path logDir = Path.of(config.getPATH_TO_SAVE())
-                .resolve(config.getEgoType().name() + "_" + config.getAiProfile().name() + "_LOGS");
+        Path logDir = logDirectory(config);
         Path logFile = logDir.resolve(prefix + timestamp + "_" + simulationIndex + ".json");
 
         try {
             Files.createDirectories(logDir);
             Files.writeString(logFile, initialStateJson, StandardCharsets.UTF_8);
-            Files.writeString(metadataPathFor(logFile), GSON.toJson(new RunMetadata(config)), StandardCharsets.UTF_8);
         } catch (IOException e) {
             throw new UncheckedIOException("Failed to save initial state log: " + logFile, e);
         }
     }
 
+    private void saveRunMetadata(JavaMomentumConfig config) {
+        Path metadataPath = logDirectory(config).resolve("meta.json");
+        try {
+            Files.createDirectories(metadataPath.getParent());
+            Files.writeString(metadataPath, GSON.toJson(new RunMetadata(config)), StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            throw new UncheckedIOException("Failed to save run metadata: " + metadataPath, e);
+        }
+    }
+
     private void saveGenLogSummary(JavaMomentumConfig config, GenLogSummary summary) {
-        Path logDir = Path.of(config.getPATH_TO_SAVE())
-                .resolve(config.getEgoType().name() + "_" + config.getAiProfile().name() + "_LOGS");
+        Path logDir = logDirectory(config);
         Path summaryFile = logDir.resolve("summary_" + LocalDateTime.now().format(LOG_TIME_FORMAT) + ".json");
 
         try {
@@ -321,8 +351,37 @@ public class Runner {
         }
     }
 
+    private void saveGenLogStatFiles(JavaMomentumConfig config, GenLogSummary summary) {
+        Path logDir = logDirectory(config);
+        try {
+            Files.createDirectories(logDir);
+            Files.writeString(logDir.resolve("collision_stats.json"),
+                    GSON.toJson(new CollisionStats(summary)), StandardCharsets.UTF_8);
+            Files.writeString(logDir.resolve("shield_stats.json"),
+                    GSON.toJson(new ShieldStats(summary)), StandardCharsets.UTF_8);
+            Files.writeString(logDir.resolve("distance_stats.json"),
+                    GSON.toJson(new DistanceStats(summary)), StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            throw new UncheckedIOException("Failed to save gen log statistics in: " + logDir, e);
+        }
+    }
+
+    private void saveCrashDetails(JavaMomentumConfig config, List<CrashDetail> crashDetails) {
+        Path logDir = logDirectory(config);
+        try {
+            Files.createDirectories(logDir);
+            Files.writeString(logDir.resolve("crash_details.json"),
+                    GSON.toJson(crashDetails), StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            throw new UncheckedIOException("Failed to save crash details in: " + logDir, e);
+        }
+    }
+
     private void applyRecoveredRunMetadata(Path initialStatePath, JavaMomentumConfig config) {
-        Path metadataPath = metadataPathFor(initialStatePath);
+        Path metadataPath = sharedMetadataPathFor(initialStatePath);
+        if (!Files.exists(metadataPath)) {
+            metadataPath = metadataPathFor(initialStatePath);
+        }
         if (!Files.exists(metadataPath)) {
             System.out.println("No recover metadata found for " + initialStatePath
                     + "; using current JavaMomentumConfig values.");
@@ -356,6 +415,16 @@ public class Runner {
         return Path.of(logFile.toString() + ".meta.json");
     }
 
+    private Path sharedMetadataPathFor(Path logFile) {
+        Path parent = logFile.getParent();
+        return parent == null ? Path.of("meta.json") : parent.resolve("meta.json");
+    }
+
+    private Path logDirectory(JavaMomentumConfig config) {
+        return Path.of(config.getPATH_TO_SAVE())
+                .resolve(config.getEgoType().name() + "_" + config.getAiProfile().name() + "_LOGS");
+    }
+
     private static class SimulationRunResult {
         private final String initialStateJson;
         private final boolean crashed;
@@ -363,15 +432,45 @@ public class Runner {
         private final int aiDecisionCount;
         private final int rejectedAiDecisionCount;
         private final double finalEgoX;
+        private final List<BeforeCrashActionLog> beforeCrashActions;
+        private final CollisionLog collisionLog;
 
         private SimulationRunResult(String initialStateJson, boolean crashed, RuntimeException crashException,
-                                    int aiDecisionCount, int rejectedAiDecisionCount, double finalEgoX) {
+                                    int aiDecisionCount, int rejectedAiDecisionCount, double finalEgoX,
+                                    List<BeforeCrashActionLog> beforeCrashActions, CollisionLog collisionLog) {
             this.initialStateJson = initialStateJson;
             this.crashed = crashed;
             this.crashException = crashException;
             this.aiDecisionCount = aiDecisionCount;
             this.rejectedAiDecisionCount = rejectedAiDecisionCount;
             this.finalEgoX = finalEgoX;
+            this.beforeCrashActions = beforeCrashActions;
+            this.collisionLog = collisionLog;
+        }
+    }
+
+    private static class CrashDetail {
+        private final int simulationIndex;
+        private final String crashMessage;
+        private final CollisionLog collision;
+        private final double relativeSpeed;
+        private final List<BeforeCrashActionLog> beforeCrashActions;
+
+        private CrashDetail(int simulationIndex, SimulationRunResult result) {
+            this.simulationIndex = simulationIndex;
+            this.crashMessage = result.crashException == null ? null : result.crashException.getMessage();
+            this.collision = result.collisionLog;
+            this.relativeSpeed = collisionSeverity(result.collisionLog);
+            this.beforeCrashActions = result.beforeCrashActions == null ? List.of() : result.beforeCrashActions;
+        }
+
+        private static double collisionSeverity(CollisionLog collisionLog) {
+            if (collisionLog == null) {
+                return Double.NaN;
+            }
+            double dvx = collisionLog.firstVx() - collisionLog.secondVx();
+            double dvy = collisionLog.firstVy() - collisionLog.secondVy();
+            return Math.sqrt(dvx * dvx + dvy * dvy);
         }
     }
 
@@ -442,6 +541,9 @@ public class Runner {
         private final int requestedRuns;
         private final int completedRuns;
         private final int crashedRuns;
+        private final int safeRuns;
+        private final double crashRate;
+        private final double crashPercent;
         private final long aiDecisionCount;
         private final long rejectedAiDecisionCount;
         private final double rejectedAiDecisionRate;
@@ -456,6 +558,9 @@ public class Runner {
             this.requestedRuns = requestedRuns;
             this.completedRuns = completedRuns;
             this.crashedRuns = crashedRuns;
+            this.safeRuns = completedRuns - crashedRuns;
+            this.crashRate = completedRuns == 0 ? 0.0 : (double) crashedRuns / completedRuns;
+            this.crashPercent = crashRate * 100.0;
             this.aiDecisionCount = aiDecisionCount;
             this.rejectedAiDecisionCount = rejectedAiDecisionCount;
             this.rejectedAiDecisionRate = rejectedAiDecisionRate;
@@ -463,6 +568,58 @@ public class Runner {
             this.averageFinalEgoX = averageFinalEgoX;
             this.minFinalEgoX = minFinalEgoX;
             this.maxFinalEgoX = maxFinalEgoX;
+        }
+    }
+
+    private static class CollisionStats {
+        private final int requestedRuns;
+        private final int completedRuns;
+        private final int crashedRuns;
+        private final int safeRuns;
+        private final double crashRate;
+        private final double crashPercent;
+
+        private CollisionStats(GenLogSummary summary) {
+            this.requestedRuns = summary.requestedRuns;
+            this.completedRuns = summary.completedRuns;
+            this.crashedRuns = summary.crashedRuns;
+            this.safeRuns = summary.safeRuns;
+            this.crashRate = summary.crashRate;
+            this.crashPercent = summary.crashPercent;
+        }
+    }
+
+    private static class ShieldStats {
+        private final long aiDecisionCount;
+        private final long rejectedAiDecisionCount;
+        private final long acceptedAiDecisionCount;
+        private final double rejectedAiDecisionRate;
+        private final double rejectedAiDecisionPercent;
+        private final double acceptedAiDecisionRate;
+        private final double acceptedAiDecisionPercent;
+
+        private ShieldStats(GenLogSummary summary) {
+            this.aiDecisionCount = summary.aiDecisionCount;
+            this.rejectedAiDecisionCount = summary.rejectedAiDecisionCount;
+            this.acceptedAiDecisionCount = summary.aiDecisionCount - summary.rejectedAiDecisionCount;
+            this.rejectedAiDecisionRate = summary.rejectedAiDecisionRate;
+            this.rejectedAiDecisionPercent = summary.rejectedAiDecisionPercent;
+            this.acceptedAiDecisionRate = summary.aiDecisionCount == 0
+                    ? 0.0
+                    : (double) acceptedAiDecisionCount / summary.aiDecisionCount;
+            this.acceptedAiDecisionPercent = acceptedAiDecisionRate * 100.0;
+        }
+    }
+
+    private static class DistanceStats {
+        private final double averageFinalEgoX;
+        private final double minFinalEgoX;
+        private final double maxFinalEgoX;
+
+        private DistanceStats(GenLogSummary summary) {
+            this.averageFinalEgoX = summary.averageFinalEgoX;
+            this.minFinalEgoX = summary.minFinalEgoX;
+            this.maxFinalEgoX = summary.maxFinalEgoX;
         }
     }
 

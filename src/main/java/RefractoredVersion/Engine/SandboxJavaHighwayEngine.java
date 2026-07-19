@@ -41,8 +41,8 @@ public class SandboxJavaHighwayEngine extends JavaHighwayEngine {
                     continue;
                 }
 
-                hasCollision = true;
                 if (first instanceof NonNpcVehicle || second instanceof NonNpcVehicle) {
+                    hasCollision = true;
                     hasNonNpcVehicleCollision = true;
                 } else {
                     hasNpcCollision = true;

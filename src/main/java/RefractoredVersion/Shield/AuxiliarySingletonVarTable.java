@@ -8,5 +8,17 @@ public enum AuxiliarySingletonVarTable {
     isInitialChangeLane,
     initialIntention,
     rearThreatRearVehicleIndex,
-    rearThreatBeforeAcceleration
+    rearThreatBeforeAcceleration;
+
+    public static int baseIndex(int vehicleCount) {
+        return vehicleCount * VarTable.values().length;
+    }
+
+    public static int index(int vehicleCount, AuxiliarySingletonVarTable variable) {
+        return baseIndex(vehicleCount) + variable.ordinal();
+    }
+
+    public static int stateSize(int vehicleCount) {
+        return baseIndex(vehicleCount) + values().length;
+    }
 }

@@ -424,6 +424,27 @@ public class JavaHighwayEngineUtils {
         return ((x + Math.PI) % (2 * Math.PI)) - Math.PI;
     }
 
+    public static int sandboxComputeTargetLane(Vehicle vehicle, List<Vehicle> environments, List<Integer>possibleLanes, JavaHighwayEngine engine) throws Exception {
+        if (vehicle instanceof PControlledVehicle) {
+            return vehicle.getTargetLaneIndex();
+        }
+        if (isLeadingVehicleInCurrentLane(vehicle, environments)) {
+            return vehicle.getTargetLaneIndex();
+        }
+        return computeTargetLane(vehicle, environments, possibleLanes, engine);
+    }
 
+    private static boolean isLeadingVehicleInCurrentLane(Vehicle vehicle, List<Vehicle> environments) {
+        int lane = vehicle.getLaneIndex();
+        for (Vehicle other : environments) {
+            if (other == vehicle) {
+                continue;
+            }
+            if (other.getLaneIndex() == lane && other.x > vehicle.x) {
+                return false;
+            }
+        }
+        return true;
+    }
 
 }

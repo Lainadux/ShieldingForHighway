@@ -35,10 +35,10 @@ public class TestScripts {
        JavaMomentumConfig config = new JavaMomentumConfig();
 
        config.setShieldType(ShieldType.EXPLORE_FUTURE_ACTION);
-       config.setFutureActions(List.of());
+       //config.setFutureActions(List.of());
 
 
-       config.setEgoType(EgoType.EgoVehicle);
+       config.setEgoType(EgoType.ExploreFutureEgo);
        config.setAiProfile(AIProfile.adversarial);
        config.setMinX(0);
        config.setMaxX(400);
@@ -54,7 +54,7 @@ public class TestScripts {
 
        config.setTestFunction(TestFunction.RECOVER);
        config.setTestFunction(TestFunction.GEN_LOGS);
-       String logsRoot = "C:\\MSCProject\\codes\\RefractoredVersionRepo\\src\\main\\java\\RefractoredVersion\\logs\\1784338908271\\EgoVehicle_adversarial_LOGS\\crashed_20260718_034509_780_64.json";
+       String logsRoot = "C:\\MSCProject\\codes\\RefractoredVersionRepo\\src\\main\\java\\RefractoredVersion\\logs\\1784417446786\\ExploreFutureEgo_adversarial_LOGS\\crashed_20260719_014126_044_67.json";
 
        config.setRecoverInitialStateFile(logsRoot);
 
