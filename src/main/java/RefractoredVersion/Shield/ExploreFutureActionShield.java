@@ -56,7 +56,7 @@ public class ExploreFutureActionShield {
 
     private final JavaHighwayEngine sourceEngine;
     private final int  predictionTime;
-    private SandboxJavaHighwayEngine sandboxEngine;
+    protected SandboxJavaHighwayEngine sandboxEngine;
     private int predictionVehicleCount = -1;
     private EvolutionSequence sequence;
     private double lastCollisionRobustness = Double.NaN;
@@ -285,7 +285,7 @@ public class ExploreFutureActionShield {
         }
         return sampleTraces;
     }
-    private List<List<Vehicle>> predictCandidateTrace(List<Action> actionSequence) throws Exception {
+    public List<List<Vehicle>> predictCandidateTrace(List<Action> actionSequence) throws Exception {
         sandboxEngine = createSandboxEngine(actionSequence);
         int predictionSteps = Math.max(1, actionSequence.size() * sandboxEngine.getFrequency());
         List<List<Vehicle>> trace = new ArrayList<>();
@@ -300,7 +300,7 @@ public class ExploreFutureActionShield {
         }
         return trace;
     }
-    private void planSandboxActions() throws Exception {
+    protected void planSandboxActions() throws Exception {
         for (Vehicle vehicle : sandboxEngine.vehicles) {
             if (vehicle instanceof NonNpcVehicle) {
                 ((NonNpcVehicle) vehicle).planAction();
@@ -309,7 +309,7 @@ public class ExploreFutureActionShield {
             }
         }
     }
-    private SandboxJavaHighwayEngine createSandboxEngine(List<Action> actionSequence) {
+    protected SandboxJavaHighwayEngine createSandboxEngine(List<Action> actionSequence) {
         SandboxJavaHighwayEngine sandbox = new SandboxJavaHighwayEngine();
         sandbox.setFrequency(sourceEngine.getFrequency());
         sandbox.config = sourceEngine.config;
@@ -337,7 +337,7 @@ public class ExploreFutureActionShield {
         return deepCopyVehicles(vehicles, futureActions);
     }
 
-    private List<Vehicle> deepCopyVehicles(List<Vehicle> vehicles, List<Action> actionSequence) {
+    protected List<Vehicle> deepCopyVehicles(List<Vehicle> vehicles, List<Action> actionSequence) {
         List<Vehicle> copies = new ArrayList<>();
         for (Vehicle vehicle : vehicles) {
             Vehicle copy = vehicle instanceof NonNpcVehicle
@@ -348,7 +348,7 @@ public class ExploreFutureActionShield {
         }
         return copies;
     }
-    private static class ShieldNonNpcVehicle extends Vehicle implements NonNpcVehicle, PControlledVehicle {
+    public static class ShieldNonNpcVehicle extends Vehicle implements NonNpcVehicle, PControlledVehicle {
         private final List<Action> futureActions;
 
         ShieldNonNpcVehicle(List<Action> futureActions) {
@@ -373,7 +373,7 @@ public class ExploreFutureActionShield {
         }
     }
 
-    private static class ShieldNpcVehicle extends Vehicle {
+    protected static class ShieldNpcVehicle extends Vehicle {
         @Override
         public void planAction(List<Vehicle> allVehicles) throws Exception {
             this.setTargetLaneIndex(JavaHighwayEngineUtils.sandboxComputeTargetLane(
@@ -387,7 +387,7 @@ public class ExploreFutureActionShield {
         }
     }
 
-    private void copyVehicleState(Vehicle source, Vehicle copy) {
+    protected void copyVehicleState(Vehicle source, Vehicle copy) {
         copy.TAU_ACC = source.TAU_ACC;
         copy.TAU_HEADING = source.TAU_HEADING;
         copy.TAU_LATERAL = source.TAU_LATERAL;

@@ -108,10 +108,22 @@ public class VehicleGenerator {
                 EgoVehicle egoVehicle = new EgoVehicle();
                 egoVehicle.aiProfile = javaMomentumConfig.getAiProfile();
                 return egoVehicle;
+            case EgoDelayedVehicle:
+                EgoDelayedVehicle egoDelayedVehicle = new EgoDelayedVehicle();
+                egoDelayedVehicle.aiProfile = javaMomentumConfig.getAiProfile();
+                return egoDelayedVehicle;
             case ExploreFutureEgo:
                 ExploreFutureEgo exploreFutureEgo = new ExploreFutureEgo();
                 exploreFutureEgo.aiProfile = javaMomentumConfig.getAiProfile();
                 return exploreFutureEgo;
+            case ExploreFutureSlowerVehicle:
+                ExploreFutureSlowerVehicle exploreFutureSlowerVehicle = new ExploreFutureSlowerVehicle();
+                exploreFutureSlowerVehicle.aiProfile = javaMomentumConfig.getAiProfile();
+                return exploreFutureSlowerVehicle;
+            case ExploreFutureDelayedVehicle:
+                ExploreFutureDelayedVehicle exploreFutureDelayedVehicle = new ExploreFutureDelayedVehicle();
+                exploreFutureDelayedVehicle.aiProfile = javaMomentumConfig.getAiProfile();
+                return exploreFutureDelayedVehicle;
             default:
                 throw new IllegalArgumentException("Unsupported ego type: " + resolvedEgoType);
         }

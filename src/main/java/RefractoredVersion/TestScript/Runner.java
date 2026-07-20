@@ -28,8 +28,11 @@ import RefractoredVersion.Engine.Action;
 import RefractoredVersion.Engine.AIProfile;
 import RefractoredVersion.Engine.BeforeCrashActionLog;
 import RefractoredVersion.Engine.CollisionLog;
+import RefractoredVersion.Engine.EgoDelayedVehicle;
 import RefractoredVersion.Engine.EgoVehicle;
+import RefractoredVersion.Engine.ExploreFutureDelayedVehicle;
 import RefractoredVersion.Engine.ExploreFutureEgo;
+import RefractoredVersion.Engine.ExploreFutureSlowerVehicle;
 import RefractoredVersion.Engine.RandomEgoVehicle;
 import RefractoredVersion.Engine.Vehicle;
 import RefractoredVersion.Engine.VehicleGenerator;
@@ -268,11 +271,26 @@ public class Runner {
                 AIProfile aiProfile = config.getAiProfile() == null ? AIProfile.base : config.getAiProfile();
                 egoVehicle.aiProfile = aiProfile;
                 return egoVehicle;
+            case EgoDelayedVehicle:
+                EgoDelayedVehicle egoDelayedVehicle = new EgoDelayedVehicle();
+                AIProfile egoDelayedAiProfile = config.getAiProfile() == null ? AIProfile.base : config.getAiProfile();
+                egoDelayedVehicle.aiProfile = egoDelayedAiProfile;
+                return egoDelayedVehicle;
             case ExploreFutureEgo:
                 ExploreFutureEgo exploreFutureEgo = new ExploreFutureEgo();
                 AIProfile exploreFutureAiProfile = config.getAiProfile() == null ? AIProfile.base : config.getAiProfile();
                 exploreFutureEgo.aiProfile = exploreFutureAiProfile;
                 return exploreFutureEgo;
+            case ExploreFutureSlowerVehicle:
+                ExploreFutureSlowerVehicle exploreFutureSlowerVehicle = new ExploreFutureSlowerVehicle();
+                AIProfile exploreFutureSlowerAiProfile = config.getAiProfile() == null ? AIProfile.base : config.getAiProfile();
+                exploreFutureSlowerVehicle.aiProfile = exploreFutureSlowerAiProfile;
+                return exploreFutureSlowerVehicle;
+            case ExploreFutureDelayedVehicle:
+                ExploreFutureDelayedVehicle exploreFutureDelayedVehicle = new ExploreFutureDelayedVehicle();
+                AIProfile exploreFutureDelayedAiProfile = config.getAiProfile() == null ? AIProfile.base : config.getAiProfile();
+                exploreFutureDelayedVehicle.aiProfile = exploreFutureDelayedAiProfile;
+                return exploreFutureDelayedVehicle;
             case RandomEgoVehicle:
                 return new RandomEgoVehicle();
             default:
@@ -396,7 +414,7 @@ public class Runner {
             }
             metadata.applyTo(config);
             System.out.printf(
-                    "Recovered config: egoType=%s aiProfile=%s frequency=%d duration=%d predictionTime=%d maxTargetSpeed=%.2f fixPrediction=%s shieldType=%s futureActions=%s%n",
+                    "Recovered config: egoType=%s aiProfile=%s frequency=%d duration=%d predictionTime=%d maxTargetSpeed=%.2f fixPrediction=%s shieldType=%s delayedActionStep=%d futureActions=%s%n",
                     config.getEgoType(),
                     config.getAiProfile(),
                     config.getFrequency(),
@@ -405,6 +423,7 @@ public class Runner {
                     config.getMaxTargetSpeed(),
                     config.isFixPrediction(),
                     config.getShieldType(),
+                    config.getDelayedActionStep(),
                     config.getFutureActions());
         } catch (IOException e) {
             throw new UncheckedIOException("Failed to read recover metadata: " + metadataPath, e);
@@ -453,7 +472,7 @@ public class Runner {
         private final int simulationIndex;
         private final String crashMessage;
         private final CollisionLog collision;
-        private final double relativeSpeed;
+        private final Double relativeSpeed;
         private final List<BeforeCrashActionLog> beforeCrashActions;
 
         private CrashDetail(int simulationIndex, SimulationRunResult result) {
@@ -464,9 +483,9 @@ public class Runner {
             this.beforeCrashActions = result.beforeCrashActions == null ? List.of() : result.beforeCrashActions;
         }
 
-        private static double collisionSeverity(CollisionLog collisionLog) {
+        private static Double collisionSeverity(CollisionLog collisionLog) {
             if (collisionLog == null) {
-                return Double.NaN;
+                return null;
             }
             double dvx = collisionLog.firstVx() - collisionLog.secondVx();
             double dvy = collisionLog.firstVy() - collisionLog.secondVy();
@@ -632,6 +651,7 @@ public class Runner {
         private Double maxTargetSpeed;
         private Boolean fixPrediction;
         private String shieldType;
+        private Integer delayedActionStep;
         private List<String> futureActions;
         private Double minX;
         private Double maxX;
@@ -645,6 +665,7 @@ public class Runner {
             this.maxTargetSpeed = config.getMaxTargetSpeed();
             this.fixPrediction = config.isFixPrediction();
             this.shieldType = config.getShieldType() == null ? null : config.getShieldType().name();
+            this.delayedActionStep = config.getDelayedActionStep();
             this.futureActions = config.getFutureActions() == null
                     ? null
                     : config.getFutureActions().stream().map(Action::name).toList();
@@ -676,6 +697,9 @@ public class Runner {
             }
             if (shieldType != null && !shieldType.isBlank()) {
                 config.setShieldType(ShieldType.valueOf(shieldType));
+            }
+            if (delayedActionStep != null) {
+                config.setDelayedActionStep(delayedActionStep);
             }
             if (futureActions != null) {
                 config.setFutureActions(futureActions.stream().map(Action::valueOf).toList());

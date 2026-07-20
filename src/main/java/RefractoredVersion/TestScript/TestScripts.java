@@ -34,15 +34,19 @@ public class TestScripts {
        // config should be  used to set the parameters of the simulation
        JavaMomentumConfig config = new JavaMomentumConfig();
 
-       config.setShieldType(ShieldType.EXPLORE_FUTURE_ACTION);
+       config.setShieldType(ShieldType.EXPLORE_FUTURE_DELAYED_ACTION);
        //config.setFutureActions(List.of());
 
 
-       config.setEgoType(EgoType.ExploreFutureEgo);
+       //config.setEgoType(EgoType.ExploreFutureEgo);
+       config.setEgoType(EgoType.ExploreFutureSlowerVehicle);
+       config.setEgoType(EgoType.EgoVehicle);
+
+       config.setEgoType(EgoType.ExploreFutureDelayedVehicle);
        config.setAiProfile(AIProfile.adversarial);
        config.setMinX(0);
        config.setMaxX(400);
-       config.setDuration(40);
+       config.setDuration(30);
        config.setFrequency(20);
        config.setNumsOfSimulations(100);
        // generate logs in the "EGOTYPE_AIPROFILE_LOGS/timestamp/..."

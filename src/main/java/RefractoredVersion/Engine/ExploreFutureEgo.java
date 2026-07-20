@@ -99,7 +99,7 @@ public class ExploreFutureEgo extends EgoVehicle {
         }
     }
 
-    private void rebuildCachedActions(List<Action> fallbackSequence) {
+    protected void rebuildCachedActions(List<Action> fallbackSequence) {
         cachedActions.clear();
         cachedActions.addAll(fallbackSequence);
     }

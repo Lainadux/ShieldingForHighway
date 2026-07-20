@@ -44,6 +44,7 @@ public class JavaMomentumConfig extends Config {
     private boolean fixPrediction = false;
     private String recoverInitialStateFile;
     private ShieldType shieldType = ShieldType.ALL_SLOWER;
+    private int delayedActionStep = 1;
     @Deprecated
     private List<Action> futureActions = new ArrayList<>();
     @Deprecated
@@ -82,6 +83,13 @@ public class JavaMomentumConfig extends Config {
         } else if (this.testFunction == TestFunction.GEN_LOGS) {
             this.testFunction = TestFunction.SINGLE_RUN;
         }
+    }
+
+    public void setDelayedActionStep(int delayedActionStep) {
+        if (delayedActionStep < 1) {
+            throw new IllegalArgumentException("delayedActionStep must be at least 1.");
+        }
+        this.delayedActionStep = delayedActionStep;
     }
 
 }
