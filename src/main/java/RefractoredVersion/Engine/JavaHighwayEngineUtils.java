@@ -328,7 +328,7 @@ public class JavaHighwayEngineUtils {
         for (Vehicle v : environments) {
            //
             //if (v.getLaneIndex() == LaneNo && v.x < thisCar.x) {
-            if (isOnLaneWithMargin(v, LaneNo) && v.x > thisCar.x){
+            if (isOnLaneWithMargin(v, LaneNo) && v.x < thisCar.x){
                 if (rearVehicle == null || v.x > rearVehicle.x) {
                     rearVehicle = v;
                 }

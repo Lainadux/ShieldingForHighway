@@ -9,6 +9,8 @@ import RefractoredVersion.Engine.NonNpcVehicle;
 import RefractoredVersion.Engine.PControlledVehicle;
 import RefractoredVersion.Engine.SandboxJavaHighwayEngine;
 import RefractoredVersion.Engine.Vehicle;
+import RefractoredVersion.TestScript.Config.JavaMomentumConfig;
+import RefractoredVersion.TestScript.Config.SandboxNpcPolitenessMode;
 import it.unicam.quasylab.jspear.DefaultRandomGenerator;
 import it.unicam.quasylab.jspear.EvolutionSequence;
 import it.unicam.quasylab.jspear.SampleSet;
@@ -43,7 +45,7 @@ public class ExploreFutureActionShield {
     private static final double MIN_CLOSE_FRONT_GAP = 10.0;
     private static final double MAX_STABLE_RELATIVE_SPEED = 2.0;
     private static final double SAFE_RECEDING_RELATIVE_SPEED = 2.0;
-    private static final double AGGRESSIVE_V3_TTC_THRESHOLD = 4.0;
+    private static final double DEFAULT_AGGRESSIVE_V3_TTC_THRESHOLD = 4.0;
     private static final double FIRST_SECOND_LOOKAHEAD_TIME = 1.0;
     private static final double FIRST_SECOND_MIN_FRONT_GAP = 2.0;
     private static final double CHANGE_LANE_REAR_THREAT_DISTANCE_THRESHOLD = 0.1;
@@ -52,7 +54,6 @@ public class ExploreFutureActionShield {
     private static final double CHANGE_LANE_REAR_REACTION_TIME = 0.1;
     private static final double CHANGE_LANE_REAR_MAX_BRAKE = 3.0;
     private static final double MIN_FRONT_ACCELERATION_UNCERTAINTY = 0.5;
-    private static final double FIXED_PREDICTION_RANDOM_TARGET_DELTA = 1.0;
 
     private final JavaHighwayEngine sourceEngine;
     private final int  predictionTime;
@@ -402,7 +403,7 @@ public class ExploreFutureActionShield {
         copy.mobil = source.mobil;
         copy.targetSpeed = source.targetSpeed;
         copy.id = source.id;
-        copy.politeness = source.politeness;
+        copy.politeness = sandboxPoliteness(source, copy);
         copy.cooldownTimer = Math.random();
         copy.setTargetLaneIndex(source.getTargetLaneIndex());
         copy.setLaneIndex(source.getLaneIndex());
@@ -421,12 +422,35 @@ public class ExploreFutureActionShield {
         }
 
     }
+
+    private double sandboxPoliteness(Vehicle source, Vehicle copy) {
+        if (copy instanceof NonNpcVehicle) {
+            return source.politeness;
+        }
+        JavaMomentumConfig config = sourceEngine.config;
+        SandboxNpcPolitenessMode mode = config == null || config.getSandboxNpcPolitenessMode() == null
+                ? SandboxNpcPolitenessMode.COPY_REAL
+                : config.getSandboxNpcPolitenessMode();
+        switch (mode) {
+            case ZERO:
+                return 0.0;
+            case RANDOM:
+                return Math.random() * 0.3;
+            case COPY_REAL:
+            default:
+                return source.politeness;
+        }
+    }
+
     private boolean isFixPredictionEnabled() {
         return sourceEngine.config != null && sourceEngine.config.isFixPrediction();
     }
     private double getRandomFixedPredictionTargetSpeed(Vehicle vehicle) {
-        double minTargetSpeed = Math.max(0.0, vehicle.speed - FIXED_PREDICTION_RANDOM_TARGET_DELTA);
-        double maxTargetSpeed = vehicle.speed + FIXED_PREDICTION_RANDOM_TARGET_DELTA;
+        double delta = sourceEngine.config == null
+                ? 1.0
+                : sourceEngine.config.getFixedPredictionTargetSpeedDelta();
+        double minTargetSpeed = Math.max(0.0, vehicle.speed - delta);
+        double maxTargetSpeed = vehicle.speed + delta;
         return minTargetSpeed + Math.random() * (maxTargetSpeed - minTargetSpeed);
     }
     private List<SampleSet<SystemState>> toSampleSetsFromSampleTraces(List<List<List<Vehicle>>> sampleTraces,
@@ -838,10 +862,17 @@ public class ExploreFutureActionShield {
             return Math.min(1.0, Math.max(0.0, closingSpeed - MAX_STABLE_RELATIVE_SPEED) / MAX_STABLE_RELATIVE_SPEED);
         }
         double ttc = frontGap / closingSpeed;
-        if (ttc > AGGRESSIVE_V3_TTC_THRESHOLD) {
+        double threshold = aggressiveV3TtcThreshold();
+        if (ttc > threshold) {
             return 0.0;
         }
-        return Math.min(1.0, (AGGRESSIVE_V3_TTC_THRESHOLD - ttc) / AGGRESSIVE_V3_TTC_THRESHOLD);
+        return Math.min(1.0, (threshold - ttc) / threshold);
+    }
+
+    private double aggressiveV3TtcThreshold() {
+        return sourceEngine.config == null
+                ? DEFAULT_AGGRESSIVE_V3_TTC_THRESHOLD
+                : sourceEngine.config.getAggressiveV3TtcThreshold();
     }
     private String diagnoseState(DataState state, int lastStep) {
         int egoIndex = getEgoVehicleIndex(state);

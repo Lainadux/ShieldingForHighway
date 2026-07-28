@@ -40,7 +40,9 @@ public class VehicleGenerator {
     private static final int SPAWN_ATTEMPT_MULTIPLIER = 200;
     private static final double MIN_SPAWN_FRONT_GAP = 12.0;
     private static final double SPAWN_REACTION_TIME = 0.5;
-    private static final double SPAWN_MAX_BRAKE = 5.0;
+    private static final double SPAWN_RESPONSE_MAX_ACCELERATION = 3.0;
+    private static final double SPAWN_REAR_MIN_BRAKE = 5.0;
+    private static final double SPAWN_FRONT_MAX_BRAKE = 5.0;
     private static final double NPC_INITIAL_SPEED_MIN = 21.0;
     private static final double NPC_INITIAL_SPEED_MAX = 24.0;
 
@@ -51,6 +53,44 @@ public class VehicleGenerator {
         }
 
         throw new IllegalArgumentException("Unsupported initial state generation method: " + method);
+    }
+
+    public static ArrayList<Vehicle> genAllNpc(boolean randomizePoliteness) {
+        ArrayList<Vehicle> vehicles = new ArrayList<>();
+        Random rand = new Random();
+        int spawned = 0;
+        int attempts = 0;
+        int maxAttempts = DEFAULT_TARGET_VEHICLES * SPAWN_ATTEMPT_MULTIPLIER;
+
+        while (spawned < DEFAULT_TARGET_VEHICLES && attempts < maxAttempts) {
+            attempts++;
+
+            Vehicle vehicle = new Vehicle();
+            int lane = rand.nextInt(DEFAULT_NUM_LANES);
+            vehicle.role = "NPC";
+            vehicle.id = String.valueOf(spawned);
+            vehicle.y = lane * LANE_WIDTH;
+            vehicle.setLaneIndex(lane);
+            vehicle.setTargetLaneIndex(lane);
+            vehicle.cooldownTimer = rand.nextDouble();
+            vehicle.speed = sampleNpcInitialSpeed(rand);
+            vehicle.x = nextPythonStyleNpcX(vehicles, rand, vehicle.speed);
+            vehicle.vx = vehicle.speed;
+            vehicle.vy = 0.0;
+            vehicle.targetSpeed = vehicle.speed;
+            if (randomizePoliteness) {
+                vehicle.politeness = rand.nextDouble() * 0.3;
+            }
+
+            if (!isSpawnDynamicallySafe(vehicles, vehicle)) {
+                continue;
+            }
+
+            vehicles.add(vehicle);
+            spawned++;
+        }
+
+        return vehicles;
     }
 
     private static ArrayList<Vehicle> populateInitialTraffic(JavaMomentumConfig javaMomentumConfig) {
@@ -86,6 +126,9 @@ public class VehicleGenerator {
             vehicle.vx = vehicle.speed;
             vehicle.vy = 0.0;
             vehicle.targetSpeed = vehicle.speed;
+            if (!"EGO".equals(vehicle.role) && javaMomentumConfig.isRandomizeNpcPoliteness()) {
+                vehicle.politeness = rand.nextDouble() * 0.3;
+            }
 
             if (!isSpawnDynamicallySafe(vehicles, vehicle)) {
                 continue;
@@ -104,29 +147,61 @@ public class VehicleGenerator {
         switch (resolvedEgoType) {
             case RandomEgoVehicle:
                 return new RandomEgoVehicle();
+            case NoShieldEgo:
+                NoShieldEgo noShieldEgo = new NoShieldEgo();
+                return configureEgoVehicle(noShieldEgo, javaMomentumConfig);
             case EgoVehicle:
                 EgoVehicle egoVehicle = new EgoVehicle();
-                egoVehicle.aiProfile = javaMomentumConfig.getAiProfile();
-                return egoVehicle;
+                return configureEgoVehicle(egoVehicle, javaMomentumConfig);
             case EgoDelayedVehicle:
                 EgoDelayedVehicle egoDelayedVehicle = new EgoDelayedVehicle();
-                egoDelayedVehicle.aiProfile = javaMomentumConfig.getAiProfile();
-                return egoDelayedVehicle;
+                return configureEgoVehicle(egoDelayedVehicle, javaMomentumConfig);
+            case AlwaysFasterVehicle:
+                AlwaysFasterVehicle alwaysFasterVehicle = new AlwaysFasterVehicle();
+                return configureEgoVehicle(alwaysFasterVehicle, javaMomentumConfig);
             case ExploreFutureEgo:
                 ExploreFutureEgo exploreFutureEgo = new ExploreFutureEgo();
-                exploreFutureEgo.aiProfile = javaMomentumConfig.getAiProfile();
-                return exploreFutureEgo;
+                return configureEgoVehicle(exploreFutureEgo, javaMomentumConfig);
+            case ExploreFutureWithoutCachingFallback:
+                ExploreFutureWithoutCachingFallback exploreFutureWithoutCachingFallback =
+                        new ExploreFutureWithoutCachingFallback();
+                return configureEgoVehicle(exploreFutureWithoutCachingFallback, javaMomentumConfig);
+            case ExploreFutureWithIdleSlowerFallback:
+                ExploreFutureWithIdleSlowerFallback exploreFutureWithIdleSlowerFallback =
+                        new ExploreFutureWithIdleSlowerFallback();
+                return configureEgoVehicle(exploreFutureWithIdleSlowerFallback, javaMomentumConfig);
             case ExploreFutureSlowerVehicle:
                 ExploreFutureSlowerVehicle exploreFutureSlowerVehicle = new ExploreFutureSlowerVehicle();
-                exploreFutureSlowerVehicle.aiProfile = javaMomentumConfig.getAiProfile();
-                return exploreFutureSlowerVehicle;
+                return configureEgoVehicle(exploreFutureSlowerVehicle, javaMomentumConfig);
+            case CounterFactualExploreFutureSlowerVehicle:
+                CounterFactualExploreFutureSlowerVehicle counterFactualExploreFutureSlowerVehicle =
+                        new CounterFactualExploreFutureSlowerVehicle();
+                return configureEgoVehicle(counterFactualExploreFutureSlowerVehicle, javaMomentumConfig);
+            case EgoRandomEnableShield:
+                EgoRandomEnableShield egoRandomEnableShield =
+                        new EgoRandomEnableShield(javaMomentumConfig.getRandomEnableShieldPercent());
+                return configureEgoVehicle(egoRandomEnableShield, javaMomentumConfig);
+            case EgoRandomFallback:
+                EgoRandomFallback egoRandomFallback =
+                        new EgoRandomFallback(javaMomentumConfig.getRandomEnableShieldPercent());
+                return configureEgoVehicle(egoRandomFallback, javaMomentumConfig);
+            case SlowerAndMinimalTrajectoryVehicle:
+                SlowerAndMinimalTrajectoryVehicle slowerAndMinimalTrajectoryVehicle =
+                        new SlowerAndMinimalTrajectoryVehicle();
+                return configureEgoVehicle(slowerAndMinimalTrajectoryVehicle, javaMomentumConfig);
             case ExploreFutureDelayedVehicle:
                 ExploreFutureDelayedVehicle exploreFutureDelayedVehicle = new ExploreFutureDelayedVehicle();
-                exploreFutureDelayedVehicle.aiProfile = javaMomentumConfig.getAiProfile();
-                return exploreFutureDelayedVehicle;
+                return configureEgoVehicle(exploreFutureDelayedVehicle, javaMomentumConfig);
             default:
                 throw new IllegalArgumentException("Unsupported ego type: " + resolvedEgoType);
         }
+    }
+
+    private static <T extends EgoVehicle> T configureEgoVehicle(T egoVehicle, JavaMomentumConfig javaMomentumConfig) {
+        egoVehicle.aiProfile = javaMomentumConfig.getAiProfile();
+        egoVehicle.sensorRange = javaMomentumConfig.getSensorRange();
+        egoVehicle.noisySensorOuterRange = javaMomentumConfig.getNoisySensorOuterRange();
+        return egoVehicle;
     }
 
     private static double nextPythonStyleNpcX(ArrayList<Vehicle> vehicles, Random rand, double speed) {
@@ -167,8 +242,12 @@ public class VehicleGenerator {
     private static double requiredInitialBumperGap(Vehicle rear, Vehicle front) {
         double rearSpeed = Math.max(0.0, rear.speed);
         double frontSpeed = Math.max(0.0, front.speed);
-        double reactionDistance = rearSpeed * SPAWN_REACTION_TIME;
-        double brakingDifference = (rearSpeed * rearSpeed - frontSpeed * frontSpeed) / (2.0 * SPAWN_MAX_BRAKE);
-        return MIN_SPAWN_FRONT_GAP + reactionDistance + Math.max(0.0, brakingDifference);
+        double rearResponseSpeed = rearSpeed + SPAWN_RESPONSE_MAX_ACCELERATION * SPAWN_REACTION_TIME;
+        double rearResponseDistance = rearSpeed * SPAWN_REACTION_TIME
+                + 0.5 * SPAWN_RESPONSE_MAX_ACCELERATION * SPAWN_REACTION_TIME * SPAWN_REACTION_TIME;
+        double rearBrakingDistance = rearResponseSpeed * rearResponseSpeed / (2.0 * SPAWN_REAR_MIN_BRAKE);
+        double frontBrakingDistance = frontSpeed * frontSpeed / (2.0 * SPAWN_FRONT_MAX_BRAKE);
+        double rssSafeDistance = rearResponseDistance + rearBrakingDistance - frontBrakingDistance;
+        return MIN_SPAWN_FRONT_GAP + Math.max(0.0, rssSafeDistance);
     }
 }

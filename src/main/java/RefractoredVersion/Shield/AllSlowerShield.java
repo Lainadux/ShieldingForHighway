@@ -30,6 +30,8 @@ import RefractoredVersion.Engine.NonNpcVehicle;
 import RefractoredVersion.Engine.PControlledVehicle;
 import RefractoredVersion.Engine.SandboxJavaHighwayEngine;
 import RefractoredVersion.Engine.Vehicle;
+import RefractoredVersion.TestScript.Config.JavaMomentumConfig;
+import RefractoredVersion.TestScript.Config.SandboxNpcPolitenessMode;
 import it.unicam.quasylab.jspear.DefaultRandomGenerator;
 import it.unicam.quasylab.jspear.EvolutionSequence;
 import it.unicam.quasylab.jspear.SampleSet;
@@ -72,7 +74,6 @@ public class AllSlowerShield {
     private static final double CHANGE_LANE_REAR_REACTION_TIME = 0.1;
     private static final double CHANGE_LANE_REAR_MAX_BRAKE = 3.0;
     private static final double MIN_FRONT_ACCELERATION_UNCERTAINTY = 0.5;
-    private static final double FIXED_PREDICTION_RANDOM_TARGET_DELTA = 1.0;
 
     protected final JavaHighwayEngine sourceEngine;
     protected final int predictionTime;
@@ -989,7 +990,7 @@ public class AllSlowerShield {
         copy.mobil = source.mobil;
         copy.targetSpeed = source.targetSpeed;
         copy.id = source.id;
-        copy.politeness = source.politeness;
+        copy.politeness = sandboxPoliteness(source, copy);
         copy.cooldownTimer = Math.random();
         copy.setTargetLaneIndex(source.getTargetLaneIndex());
         copy.setLaneIndex(source.getLaneIndex());
@@ -1008,6 +1009,25 @@ public class AllSlowerShield {
         }
     }
 
+    private double sandboxPoliteness(Vehicle source, Vehicle copy) {
+        if (copy instanceof NonNpcVehicle) {
+            return source.politeness;
+        }
+        JavaMomentumConfig config = sourceEngine.config;
+        SandboxNpcPolitenessMode mode = config == null || config.getSandboxNpcPolitenessMode() == null
+                ? SandboxNpcPolitenessMode.COPY_REAL
+                : config.getSandboxNpcPolitenessMode();
+        switch (mode) {
+            case ZERO:
+                return 0.0;
+            case RANDOM:
+                return Math.random() * 0.3;
+            case COPY_REAL:
+            default:
+                return source.politeness;
+        }
+    }
+
     protected void applyCandidateAction(Action candidateAction) {
         for (Vehicle vehicle : sandboxEngine.vehicles) {
             if (vehicle instanceof NonNpcVehicle nonNpcVehicle) {
@@ -1021,8 +1041,11 @@ public class AllSlowerShield {
     }
 
     private double getRandomFixedPredictionTargetSpeed(Vehicle vehicle) {
-        double minTargetSpeed = Math.max(0.0, vehicle.speed - FIXED_PREDICTION_RANDOM_TARGET_DELTA);
-        double maxTargetSpeed = vehicle.speed + FIXED_PREDICTION_RANDOM_TARGET_DELTA;
+        double delta = sourceEngine.config == null
+                ? 1.0
+                : sourceEngine.config.getFixedPredictionTargetSpeedDelta();
+        double minTargetSpeed = Math.max(0.0, vehicle.speed - delta);
+        double maxTargetSpeed = vehicle.speed + delta;
         return minTargetSpeed + Math.random() * (maxTargetSpeed - minTargetSpeed);
     }
 

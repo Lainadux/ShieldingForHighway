@@ -34,31 +34,45 @@ public class TestScripts {
        // config should be  used to set the parameters of the simulation
        JavaMomentumConfig config = new JavaMomentumConfig();
 
-       config.setShieldType(ShieldType.EXPLORE_FUTURE_DELAYED_ACTION);
+       //config.setShieldType(ShieldType.EXPLORE_FUTURE_DELAYED_ACTION);
+       config.setShieldType(ShieldType.EXPLORE_FUTURE_ACTION);
        //config.setFutureActions(List.of());
 
 
-       //config.setEgoType(EgoType.ExploreFutureEgo);
-       config.setEgoType(EgoType.ExploreFutureSlowerVehicle);
-       config.setEgoType(EgoType.EgoVehicle);
+       //config.setEgoType(EgoType.EgoRandomEnableShield);
+       //config.setRandomEnableShieldPercent(60);
 
-       config.setEgoType(EgoType.ExploreFutureDelayedVehicle);
+       config.setEgoType(EgoType.ExploreFutureSlowerVehicle);
+
+
+//       //Ai- slower- slower
+//       config.setEgoType(EgoType.ExploreFutureSlowerVehicle);
+//       //AI -
+//       config.setEgoType(EgoType.EgoVehicle);
+         // AI-idle
+       //config.setEgoType(EgoType.ExploreFutureDelayedVehicle);
        config.setAiProfile(AIProfile.adversarial);
+
+
        config.setMinX(0);
        config.setMaxX(400);
        config.setDuration(30);
        config.setFrequency(20);
-       config.setNumsOfSimulations(100);
+       config.setNumsOfSimulations(30);
        // generate logs in the "EGOTYPE_AIPROFILE_LOGS/timestamp/..."
        config.setPATH_TO_SAVE("src/main/java/RefractoredVersion/logs/" + System.currentTimeMillis() + "/");
        config.setMaxTargetSpeed(40);
        config.setPredictionTime(1);
        // function name is misleading, when set to true targetSpeed is random.
+       //config.setFixPrediction(true, 5);
        config.setFixPrediction(true);
+       config.setSensorRange(100);
+       config.setNoisySensorOuterRange(100);
 
        config.setTestFunction(TestFunction.RECOVER);
-       config.setTestFunction(TestFunction.GEN_LOGS);
-       String logsRoot = "C:\\MSCProject\\codes\\RefractoredVersionRepo\\src\\main\\java\\RefractoredVersion\\logs\\1784417446786\\ExploreFutureEgo_adversarial_LOGS\\crashed_20260719_014126_044_67.json";
+       //config.setRecoverShieldTypeOverride(ShieldType.Ego);
+         //config.setTestFunction(TestFunction.GEN_LOGS);
+       String logsRoot = "C:\\MSCProject\\codes\\RefractoredVersionRepo\\src\\main\\java\\RefractoredVersion\\logs\\1785076727567\\ExploreFutureSlowerVehicle_adversarial_LOGS\\safe_20260726_164012_369_21.json ";
 
        config.setRecoverInitialStateFile(logsRoot);
 

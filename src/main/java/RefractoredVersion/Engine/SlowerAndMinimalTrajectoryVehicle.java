@@ -8,9 +8,10 @@ import RefractoredVersion.TestScript.Config.ShieldType;
 
 import java.util.List;
 
-public class ExploreFutureSlowerVehicle extends ExploreFutureEgo{
-    private static final List<Action> SLOWER_SLOWER_SEQUENCE = List.of(Action.SLOWER, Action.SLOWER);
+public class SlowerAndMinimalTrajectoryVehicle extends ExploreFutureSlowerVehicle{
 
+    private static final List<Action> SLOWER_SLOWER_SEQUENCE = List.of(Action.SLOWER, Action.SLOWER);
+    private static final List<Action> EMPTY_SEQUENCE = List.of();
     @Override
     protected ShieldDecision verifyActionSafe(Action action) throws Exception {
         JavaMomentumConfig config = this.getEngine().config;
@@ -24,14 +25,21 @@ public class ExploreFutureSlowerVehicle extends ExploreFutureEgo{
                 return new ShieldDecision(allSlowerSafe, allSlowerShield.getUnsafeDiagnosis());
             case EXPLORE_FUTURE_ACTION:
 
-                ExploreFutureActionShield exploreShield = new ExploreFutureActionShield(this.getEngine(), SLOWER_SLOWER_SEQUENCE);
+                ExploreFutureActionShield exploreShield =
+                        new ExploreFutureActionShield(this.getEngine(), SLOWER_SLOWER_SEQUENCE);
                 boolean exploreSafe = exploreShield.verifySafe(action);
+                List<Action> verifiedSequence = SLOWER_SLOWER_SEQUENCE;
+                if (!exploreSafe) {
+                    exploreShield = new ExploreFutureActionShield(this.getEngine(), EMPTY_SEQUENCE);
+                    exploreSafe = exploreShield.verifySafe(action);
+                    verifiedSequence = EMPTY_SEQUENCE;
+                }
                 if (shouldPrintDiagnostics()) {
                     System.out.println("----------");
                     System.out.printf("%s explore future shield: ai_action=%s, fallback_sequence=%s%n",
                             exploreSafe ? "Safe" : "Unsafe",
                             action,
-                            SLOWER_SLOWER_SEQUENCE);
+                            verifiedSequence);
                     System.out.println(exploreShield.getUnsafeDiagnosis());
                 }
                 if(exploreSafe){

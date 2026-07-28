@@ -44,6 +44,7 @@ public class ExploreFutureDelayedVehicle  extends ExploreFutureEgo{
         this.lastAiDecision = decision;
         Action action = parseAction(decision);
         ShieldDecision shieldDecision = verifyActionSafe(action);
+        boolean cacheHit = false;
         if (shouldPrintDiagnostics()) {
             System.out.printf("%s AI decision: action=%d, action_name=%s, parsed_action=%s%n",
                     shieldDecision.safe ? "Safe" : "Unsafe",
@@ -56,12 +57,13 @@ public class ExploreFutureDelayedVehicle  extends ExploreFutureEgo{
             if (cachedActions.isEmpty()) {
                 action = Action.SLOWER;
             } else {
+                cacheHit = true;
                 action = cachedActions.get(0);
                 cachedActions.remove(0);
             }
 
         }
-        recordCrashLog(decision, parseAction(decision), shieldDecision, action);
+        recordDecisionLogs(decision, parseAction(decision), shieldDecision, action, cacheHit);
         recordAiDecision(!shieldDecision.safe);
         return action;
     }

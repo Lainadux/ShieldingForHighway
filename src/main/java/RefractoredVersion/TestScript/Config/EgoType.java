@@ -24,9 +24,17 @@ package RefractoredVersion.TestScript.Config;
 
 public enum EgoType {
     RandomEgoVehicle,
+    NoShieldEgo,
     EgoVehicle,
     EgoDelayedVehicle,
+    AlwaysFasterVehicle,
     ExploreFutureEgo,
+    ExploreFutureWithoutCachingFallback,
+    ExploreFutureWithIdleSlowerFallback,
     ExploreFutureSlowerVehicle,
+    CounterFactualExploreFutureSlowerVehicle,
+    EgoRandomEnableShield,
+    EgoRandomFallback,
+    SlowerAndMinimalTrajectoryVehicle,
     ExploreFutureDelayedVehicle
 }

@@ -25,21 +25,30 @@ package RefractoredVersion.TestScript;
 import RefractoredVersion.Engine.JavaHighwayEngine;
 import RefractoredVersion.Engine.JavaHighwayAiClient;
 import RefractoredVersion.Engine.Action;
+import RefractoredVersion.Engine.ActionAcceptanceLog;
 import RefractoredVersion.Engine.AIProfile;
+import RefractoredVersion.Engine.AlwaysFasterVehicle;
 import RefractoredVersion.Engine.BeforeCrashActionLog;
 import RefractoredVersion.Engine.CollisionLog;
 import RefractoredVersion.Engine.EgoDelayedVehicle;
+import RefractoredVersion.Engine.EgoRandomEnableShield;
+import RefractoredVersion.Engine.EgoRandomFallback;
 import RefractoredVersion.Engine.EgoVehicle;
 import RefractoredVersion.Engine.ExploreFutureDelayedVehicle;
 import RefractoredVersion.Engine.ExploreFutureEgo;
 import RefractoredVersion.Engine.ExploreFutureSlowerVehicle;
+import RefractoredVersion.Engine.ExploreFutureWithIdleSlowerFallback;
+import RefractoredVersion.Engine.ExploreFutureWithoutCachingFallback;
+import RefractoredVersion.Engine.NoShieldEgo;
 import RefractoredVersion.Engine.RandomEgoVehicle;
+import RefractoredVersion.Engine.SlowerAndMinimalTrajectoryVehicle;
 import RefractoredVersion.Engine.Vehicle;
 import RefractoredVersion.Engine.VehicleGenerator;
 import RefractoredVersion.TestScript.Config.Config;
 import RefractoredVersion.TestScript.Config.EgoType;
 import RefractoredVersion.TestScript.Config.FallBackMode;
 import RefractoredVersion.TestScript.Config.JavaMomentumConfig;
+import RefractoredVersion.TestScript.Config.SandboxNpcPolitenessMode;
 import RefractoredVersion.TestScript.Config.ShieldType;
 import RefractoredVersion.TestScript.Config.TestFunction;
 import com.google.gson.Gson;
@@ -94,6 +103,7 @@ public class Runner {
             AtomicInteger completed = new AtomicInteger(0);
             GenLogStatistics statistics = new GenLogStatistics(simulations);
             List<CrashDetail> crashDetails = Collections.synchronizedList(new ArrayList<>());
+            List<EpisodeAcceptanceSequence> acceptanceSequences = Collections.synchronizedList(new ArrayList<>());
             try {
                 if (shouldSaveLogs(javaMomentumConfig)) {
                     saveRunMetadata(javaMomentumConfig);
@@ -109,6 +119,7 @@ public class Runner {
                                         + result.crashException.getMessage());
                                 crashDetails.add(new CrashDetail(simulationIndex, result));
                             }
+                            acceptanceSequences.add(new EpisodeAcceptanceSequence(simulationIndex, result));
                         } catch (Exception e) {
                             throw new RuntimeException(e);
                         } finally {
@@ -134,6 +145,7 @@ public class Runner {
                     saveGenLogSummary(javaMomentumConfig, statistics.snapshot());
                     saveGenLogStatFiles(javaMomentumConfig, statistics.snapshot());
                     saveCrashDetails(javaMomentumConfig, crashDetails);
+                    saveAcceptanceSequences(javaMomentumConfig, acceptanceSequences);
                 }
             } finally {
                 executor.shutdownNow();
@@ -157,7 +169,13 @@ public class Runner {
         }
 
         Path recoverPath = Path.of(javaMomentumConfig.getRecoverInitialStateFile());
+        ShieldType forcedShieldType = javaMomentumConfig.getRecoverShieldTypeOverride();
         applyRecoveredRunMetadata(recoverPath, javaMomentumConfig);
+        if (forcedShieldType != null) {
+            javaMomentumConfig.setShieldType(forcedShieldType);
+            javaMomentumConfig.setRecoverShieldTypeOverride(forcedShieldType);
+            System.out.println("Forced recover shieldType: " + forcedShieldType);
+        }
         validateShieldConfig(javaMomentumConfig);
 
         JavaHighwayEngine realWorld = new JavaHighwayEngine();
@@ -198,14 +216,16 @@ public class Runner {
                 }
                 return new SimulationRunResult(initialStateJson, false, null, getAiDecisionCount(realWorld),
                         getRejectedAiDecisionCount(realWorld), realWorld.getEgoFinalX(),
-                        getBeforeCrashActions(realWorld), getCollisionLog(realWorld));
+                        getBeforeCrashActions(realWorld), getCollisionLog(realWorld),
+                        getActionAcceptanceSequence(realWorld));
             } catch (RuntimeException e) {
                 if (!captureRuntimeCrash) {
                     throw e;
                 }
                 return new SimulationRunResult(initialStateJson, true, e, getAiDecisionCount(realWorld),
                         getRejectedAiDecisionCount(realWorld), realWorld.getEgoFinalX(),
-                        getBeforeCrashActions(realWorld), getCollisionLog(realWorld));
+                        getBeforeCrashActions(realWorld), getCollisionLog(realWorld),
+                        getActionAcceptanceSequence(realWorld));
             }
         }
 
@@ -230,6 +250,11 @@ public class Runner {
     private CollisionLog getCollisionLog(JavaHighwayEngine engine) {
         EgoVehicle egoVehicle = getEgoVehicle(engine);
         return egoVehicle == null ? null : egoVehicle.retrieveCrashCollisionLog();
+    }
+
+    private List<ActionAcceptanceLog> getActionAcceptanceSequence(JavaHighwayEngine engine) {
+        EgoVehicle egoVehicle = getEgoVehicle(engine);
+        return egoVehicle == null ? List.of() : egoVehicle.retrieveActionAcceptanceSequence();
     }
 
     private EgoVehicle getEgoVehicle(JavaHighwayEngine engine) {
@@ -266,36 +291,87 @@ public class Runner {
     private Vehicle createRecoveredEgoVehicle(JavaMomentumConfig config) {
         EgoType egoType = config.getEgoType() == null ? EgoType.RandomEgoVehicle : config.getEgoType();
         switch (egoType) {
+            case NoShieldEgo:
+                NoShieldEgo noShieldEgo = new NoShieldEgo();
+                AIProfile noShieldAiProfile = config.getAiProfile() == null ? AIProfile.base : config.getAiProfile();
+                noShieldEgo.aiProfile = noShieldAiProfile;
+                return configureRecoveredEgoVehicle(noShieldEgo, config);
             case EgoVehicle:
                 EgoVehicle egoVehicle = new EgoVehicle();
                 AIProfile aiProfile = config.getAiProfile() == null ? AIProfile.base : config.getAiProfile();
                 egoVehicle.aiProfile = aiProfile;
-                return egoVehicle;
+                return configureRecoveredEgoVehicle(egoVehicle, config);
             case EgoDelayedVehicle:
                 EgoDelayedVehicle egoDelayedVehicle = new EgoDelayedVehicle();
                 AIProfile egoDelayedAiProfile = config.getAiProfile() == null ? AIProfile.base : config.getAiProfile();
                 egoDelayedVehicle.aiProfile = egoDelayedAiProfile;
-                return egoDelayedVehicle;
+                return configureRecoveredEgoVehicle(egoDelayedVehicle, config);
+            case AlwaysFasterVehicle:
+                AlwaysFasterVehicle alwaysFasterVehicle = new AlwaysFasterVehicle();
+                AIProfile alwaysFasterAiProfile = config.getAiProfile() == null ? AIProfile.base : config.getAiProfile();
+                alwaysFasterVehicle.aiProfile = alwaysFasterAiProfile;
+                return configureRecoveredEgoVehicle(alwaysFasterVehicle, config);
             case ExploreFutureEgo:
                 ExploreFutureEgo exploreFutureEgo = new ExploreFutureEgo();
                 AIProfile exploreFutureAiProfile = config.getAiProfile() == null ? AIProfile.base : config.getAiProfile();
                 exploreFutureEgo.aiProfile = exploreFutureAiProfile;
-                return exploreFutureEgo;
+                return configureRecoveredEgoVehicle(exploreFutureEgo, config);
+            case ExploreFutureWithoutCachingFallback:
+                ExploreFutureWithoutCachingFallback exploreFutureWithoutCachingFallback =
+                        new ExploreFutureWithoutCachingFallback();
+                AIProfile noCacheExploreFutureAiProfile =
+                        config.getAiProfile() == null ? AIProfile.base : config.getAiProfile();
+                exploreFutureWithoutCachingFallback.aiProfile = noCacheExploreFutureAiProfile;
+                return configureRecoveredEgoVehicle(exploreFutureWithoutCachingFallback, config);
+            case ExploreFutureWithIdleSlowerFallback:
+                ExploreFutureWithIdleSlowerFallback exploreFutureWithIdleSlowerFallback =
+                        new ExploreFutureWithIdleSlowerFallback();
+                AIProfile idleSlowerExploreFutureAiProfile =
+                        config.getAiProfile() == null ? AIProfile.base : config.getAiProfile();
+                exploreFutureWithIdleSlowerFallback.aiProfile = idleSlowerExploreFutureAiProfile;
+                return configureRecoveredEgoVehicle(exploreFutureWithIdleSlowerFallback, config);
             case ExploreFutureSlowerVehicle:
                 ExploreFutureSlowerVehicle exploreFutureSlowerVehicle = new ExploreFutureSlowerVehicle();
                 AIProfile exploreFutureSlowerAiProfile = config.getAiProfile() == null ? AIProfile.base : config.getAiProfile();
                 exploreFutureSlowerVehicle.aiProfile = exploreFutureSlowerAiProfile;
-                return exploreFutureSlowerVehicle;
+                return configureRecoveredEgoVehicle(exploreFutureSlowerVehicle, config);
+            case EgoRandomEnableShield:
+                EgoRandomEnableShield egoRandomEnableShield =
+                        new EgoRandomEnableShield(config.getRandomEnableShieldPercent());
+                AIProfile randomEnableShieldAiProfile =
+                        config.getAiProfile() == null ? AIProfile.base : config.getAiProfile();
+                egoRandomEnableShield.aiProfile = randomEnableShieldAiProfile;
+                return configureRecoveredEgoVehicle(egoRandomEnableShield, config);
+            case EgoRandomFallback:
+                EgoRandomFallback egoRandomFallback =
+                        new EgoRandomFallback(config.getRandomEnableShieldPercent());
+                AIProfile randomFallbackAiProfile =
+                        config.getAiProfile() == null ? AIProfile.base : config.getAiProfile();
+                egoRandomFallback.aiProfile = randomFallbackAiProfile;
+                return configureRecoveredEgoVehicle(egoRandomFallback, config);
+            case SlowerAndMinimalTrajectoryVehicle:
+                SlowerAndMinimalTrajectoryVehicle slowerAndMinimalTrajectoryVehicle =
+                        new SlowerAndMinimalTrajectoryVehicle();
+                AIProfile slowerAndMinimalTrajectoryAiProfile =
+                        config.getAiProfile() == null ? AIProfile.base : config.getAiProfile();
+                slowerAndMinimalTrajectoryVehicle.aiProfile = slowerAndMinimalTrajectoryAiProfile;
+                return configureRecoveredEgoVehicle(slowerAndMinimalTrajectoryVehicle, config);
             case ExploreFutureDelayedVehicle:
                 ExploreFutureDelayedVehicle exploreFutureDelayedVehicle = new ExploreFutureDelayedVehicle();
                 AIProfile exploreFutureDelayedAiProfile = config.getAiProfile() == null ? AIProfile.base : config.getAiProfile();
                 exploreFutureDelayedVehicle.aiProfile = exploreFutureDelayedAiProfile;
-                return exploreFutureDelayedVehicle;
+                return configureRecoveredEgoVehicle(exploreFutureDelayedVehicle, config);
             case RandomEgoVehicle:
                 return new RandomEgoVehicle();
             default:
                 throw new IllegalArgumentException("Unsupported recovered ego type: " + egoType);
         }
+    }
+
+    private <T extends EgoVehicle> T configureRecoveredEgoVehicle(T egoVehicle, JavaMomentumConfig config) {
+        egoVehicle.sensorRange = config.getSensorRange();
+        egoVehicle.noisySensorOuterRange = config.getNoisySensorOuterRange();
+        return egoVehicle;
     }
 
     private void copyRecoveredVehicleState(Vehicle source, Vehicle target) {
@@ -395,6 +471,21 @@ public class Runner {
         }
     }
 
+    private void saveAcceptanceSequences(JavaMomentumConfig config,
+                                         List<EpisodeAcceptanceSequence> acceptanceSequences) {
+        Path logDir = logDirectory(config);
+        List<EpisodeAcceptanceSequence> sorted = acceptanceSequences.stream()
+                .sorted((left, right) -> Integer.compare(left.simulationIndex, right.simulationIndex))
+                .toList();
+        try {
+            Files.createDirectories(logDir);
+            Files.writeString(logDir.resolve("episode_acceptance_sequences.json"),
+                    GSON.toJson(sorted), StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            throw new UncheckedIOException("Failed to save acceptance sequences in: " + logDir, e);
+        }
+    }
+
     private void applyRecoveredRunMetadata(Path initialStatePath, JavaMomentumConfig config) {
         Path metadataPath = sharedMetadataPathFor(initialStatePath);
         if (!Files.exists(metadataPath)) {
@@ -414,7 +505,7 @@ public class Runner {
             }
             metadata.applyTo(config);
             System.out.printf(
-                    "Recovered config: egoType=%s aiProfile=%s frequency=%d duration=%d predictionTime=%d maxTargetSpeed=%.2f fixPrediction=%s shieldType=%s delayedActionStep=%d futureActions=%s%n",
+                    "Recovered config: egoType=%s aiProfile=%s frequency=%d duration=%d predictionTime=%d maxTargetSpeed=%.2f fixPrediction=%s fixedPredictionTargetSpeedDelta=%.2f aggressiveV3TtcThreshold=%.2f shieldType=%s delayedActionStep=%d sensorRange=%d noisySensorOuterRange=%d randomEnableShieldPercent=%d randomizeNpcPoliteness=%s sandboxNpcPolitenessMode=%s futureActions=%s%n",
                     config.getEgoType(),
                     config.getAiProfile(),
                     config.getFrequency(),
@@ -422,8 +513,15 @@ public class Runner {
                     config.getPredictionTime(),
                     config.getMaxTargetSpeed(),
                     config.isFixPrediction(),
+                    config.getFixedPredictionTargetSpeedDelta(),
+                    config.getAggressiveV3TtcThreshold(),
                     config.getShieldType(),
                     config.getDelayedActionStep(),
+                    config.getSensorRange(),
+                    config.getNoisySensorOuterRange(),
+                    config.getRandomEnableShieldPercent(),
+                    config.isRandomizeNpcPoliteness(),
+                    config.getSandboxNpcPolitenessMode(),
                     config.getFutureActions());
         } catch (IOException e) {
             throw new UncheckedIOException("Failed to read recover metadata: " + metadataPath, e);
@@ -453,10 +551,12 @@ public class Runner {
         private final double finalEgoX;
         private final List<BeforeCrashActionLog> beforeCrashActions;
         private final CollisionLog collisionLog;
+        private final List<ActionAcceptanceLog> actionAcceptanceSequence;
 
         private SimulationRunResult(String initialStateJson, boolean crashed, RuntimeException crashException,
                                     int aiDecisionCount, int rejectedAiDecisionCount, double finalEgoX,
-                                    List<BeforeCrashActionLog> beforeCrashActions, CollisionLog collisionLog) {
+                                    List<BeforeCrashActionLog> beforeCrashActions, CollisionLog collisionLog,
+                                    List<ActionAcceptanceLog> actionAcceptanceSequence) {
             this.initialStateJson = initialStateJson;
             this.crashed = crashed;
             this.crashException = crashException;
@@ -465,6 +565,21 @@ public class Runner {
             this.finalEgoX = finalEgoX;
             this.beforeCrashActions = beforeCrashActions;
             this.collisionLog = collisionLog;
+            this.actionAcceptanceSequence = actionAcceptanceSequence == null
+                    ? List.of()
+                    : actionAcceptanceSequence;
+        }
+    }
+
+    private static class EpisodeAcceptanceSequence {
+        private final int simulationIndex;
+        private final boolean crashed;
+        private final List<ActionAcceptanceLog> decisions;
+
+        private EpisodeAcceptanceSequence(int simulationIndex, SimulationRunResult result) {
+            this.simulationIndex = simulationIndex;
+            this.crashed = result.crashed;
+            this.decisions = result.actionAcceptanceSequence;
         }
     }
 
@@ -515,7 +630,7 @@ public class Runner {
             }
             aiDecisionCount.addAndGet(result.aiDecisionCount);
             rejectedAiDecisionCount.addAndGet(result.rejectedAiDecisionCount);
-            if (!Double.isNaN(result.finalEgoX)) {
+            if (!result.crashed && !Double.isNaN(result.finalEgoX)) {
                 finalEgoXCount.incrementAndGet();
                 finalEgoXSum.accumulate(result.finalEgoX);
                 minFinalEgoX.accumulate(result.finalEgoX);
@@ -534,6 +649,7 @@ public class Runner {
                     totalDecisions,
                     rejectedDecisions,
                     totalDecisions == 0 ? 0.0 : (double) rejectedDecisions / totalDecisions,
+                    egoXSamples,
                     egoXSamples == 0 ? Double.NaN : finalEgoXSum.get() / egoXSamples,
                     egoXSamples == 0 ? Double.NaN : minFinalEgoX.get(),
                     egoXSamples == 0 ? Double.NaN : maxFinalEgoX.get()
@@ -543,13 +659,14 @@ public class Runner {
         private void print() {
             GenLogSummary summary = snapshot();
             System.out.printf(
-                    "GenLogs summary: runs=%d/%d crashed=%d aiDecisions=%d rejected=%d rejectedPercent=%.2f%% egoFinalX(avg/min/max)=%.2f/%.2f/%.2f%n",
+                    "GenLogs summary: runs=%d/%d crashed=%d aiDecisions=%d rejected=%d rejectedPercent=%.2f%% completedTraceFinalEgoX(count/avg/min/max)=%d/%.2f/%.2f/%.2f%n",
                     summary.completedRuns,
                     summary.requestedRuns,
                     summary.crashedRuns,
                     summary.aiDecisionCount,
                     summary.rejectedAiDecisionCount,
                     summary.rejectedAiDecisionPercent,
+                    summary.completedTraceCount,
                     summary.averageFinalEgoX,
                     summary.minFinalEgoX,
                     summary.maxFinalEgoX);
@@ -567,12 +684,14 @@ public class Runner {
         private final long rejectedAiDecisionCount;
         private final double rejectedAiDecisionRate;
         private final double rejectedAiDecisionPercent;
+        private final long completedTraceCount;
         private final double averageFinalEgoX;
         private final double minFinalEgoX;
         private final double maxFinalEgoX;
 
         private GenLogSummary(int requestedRuns, int completedRuns, int crashedRuns, long aiDecisionCount,
                               long rejectedAiDecisionCount, double rejectedAiDecisionRate,
+                              long completedTraceCount,
                               double averageFinalEgoX, double minFinalEgoX, double maxFinalEgoX) {
             this.requestedRuns = requestedRuns;
             this.completedRuns = completedRuns;
@@ -584,6 +703,7 @@ public class Runner {
             this.rejectedAiDecisionCount = rejectedAiDecisionCount;
             this.rejectedAiDecisionRate = rejectedAiDecisionRate;
             this.rejectedAiDecisionPercent = rejectedAiDecisionRate * 100.0;
+            this.completedTraceCount = completedTraceCount;
             this.averageFinalEgoX = averageFinalEgoX;
             this.minFinalEgoX = minFinalEgoX;
             this.maxFinalEgoX = maxFinalEgoX;
@@ -631,11 +751,13 @@ public class Runner {
     }
 
     private static class DistanceStats {
+        private final long completedTraceCount;
         private final double averageFinalEgoX;
         private final double minFinalEgoX;
         private final double maxFinalEgoX;
 
         private DistanceStats(GenLogSummary summary) {
+            this.completedTraceCount = summary.completedTraceCount;
             this.averageFinalEgoX = summary.averageFinalEgoX;
             this.minFinalEgoX = summary.minFinalEgoX;
             this.maxFinalEgoX = summary.maxFinalEgoX;
@@ -650,8 +772,15 @@ public class Runner {
         private Integer predictionTime;
         private Double maxTargetSpeed;
         private Boolean fixPrediction;
+        private Double fixedPredictionTargetSpeedDelta;
+        private Double aggressiveV3TtcThreshold;
         private String shieldType;
         private Integer delayedActionStep;
+        private Integer sensorRange;
+        private Integer noisySensorOuterRange;
+        private Integer randomEnableShieldPercent;
+        private Boolean randomizeNpcPoliteness;
+        private String sandboxNpcPolitenessMode;
         private List<String> futureActions;
         private Double minX;
         private Double maxX;
@@ -664,8 +793,17 @@ public class Runner {
             this.predictionTime = config.getPredictionTime();
             this.maxTargetSpeed = config.getMaxTargetSpeed();
             this.fixPrediction = config.isFixPrediction();
+            this.fixedPredictionTargetSpeedDelta = config.getFixedPredictionTargetSpeedDelta();
+            this.aggressiveV3TtcThreshold = config.getAggressiveV3TtcThreshold();
             this.shieldType = config.getShieldType() == null ? null : config.getShieldType().name();
             this.delayedActionStep = config.getDelayedActionStep();
+            this.sensorRange = config.getSensorRange();
+            this.noisySensorOuterRange = config.getNoisySensorOuterRange();
+            this.randomEnableShieldPercent = config.getRandomEnableShieldPercent();
+            this.randomizeNpcPoliteness = config.isRandomizeNpcPoliteness();
+            this.sandboxNpcPolitenessMode = config.getSandboxNpcPolitenessMode() == null
+                    ? null
+                    : config.getSandboxNpcPolitenessMode().name();
             this.futureActions = config.getFutureActions() == null
                     ? null
                     : config.getFutureActions().stream().map(Action::name).toList();
@@ -695,11 +833,32 @@ public class Runner {
             if (fixPrediction != null) {
                 config.setFixPrediction(fixPrediction);
             }
+            if (fixedPredictionTargetSpeedDelta != null) {
+                config.setFixedPredictionTargetSpeedDelta(fixedPredictionTargetSpeedDelta);
+            }
+            if (aggressiveV3TtcThreshold != null) {
+                config.setAggressiveV3TtcThreshold(aggressiveV3TtcThreshold);
+            }
             if (shieldType != null && !shieldType.isBlank()) {
                 config.setShieldType(ShieldType.valueOf(shieldType));
             }
             if (delayedActionStep != null) {
                 config.setDelayedActionStep(delayedActionStep);
+            }
+            if (sensorRange != null) {
+                config.setSensorRange(sensorRange);
+            }
+            if (noisySensorOuterRange != null) {
+                config.setNoisySensorOuterRange(noisySensorOuterRange);
+            }
+            if (randomEnableShieldPercent != null) {
+                config.setRandomEnableShieldPercent(randomEnableShieldPercent);
+            }
+            if (randomizeNpcPoliteness != null) {
+                config.setRandomizeNpcPoliteness(randomizeNpcPoliteness);
+            }
+            if (sandboxNpcPolitenessMode != null && !sandboxNpcPolitenessMode.isBlank()) {
+                config.setSandboxNpcPolitenessMode(SandboxNpcPolitenessMode.valueOf(sandboxNpcPolitenessMode));
             }
             if (futureActions != null) {
                 config.setFutureActions(futureActions.stream().map(Action::valueOf).toList());

@@ -42,9 +42,17 @@ public class JavaMomentumConfig extends Config {
     private int predictionTime = 3;
     private double maxTargetSpeed = 40.0;
     private boolean fixPrediction = false;
+    private double fixedPredictionTargetSpeedDelta = 1.0;
+    private double aggressiveV3TtcThreshold = 4.0;
     private String recoverInitialStateFile;
     private ShieldType shieldType = ShieldType.ALL_SLOWER;
+    private ShieldType recoverShieldTypeOverride;
     private int delayedActionStep = 1;
+    private int sensorRange = 100;
+    private int noisySensorOuterRange = 100;
+    private int randomEnableShieldPercent = 20;
+    private boolean randomizeNpcPoliteness = false;
+    private SandboxNpcPolitenessMode sandboxNpcPolitenessMode = SandboxNpcPolitenessMode.COPY_REAL;
     @Deprecated
     private List<Action> futureActions = new ArrayList<>();
     @Deprecated
@@ -90,6 +98,53 @@ public class JavaMomentumConfig extends Config {
             throw new IllegalArgumentException("delayedActionStep must be at least 1.");
         }
         this.delayedActionStep = delayedActionStep;
+    }
+
+    public void setSensorRange(int sensorRange) {
+        if (sensorRange < 0) {
+            throw new IllegalArgumentException("sensorRange cannot be negative.");
+        }
+        this.sensorRange = sensorRange;
+    }
+
+    public void setNoisySensorOuterRange(int noisySensorOuterRange) {
+        if (noisySensorOuterRange < 0) {
+            throw new IllegalArgumentException("noisySensorOuterRange cannot be negative.");
+        }
+        this.noisySensorOuterRange = noisySensorOuterRange;
+    }
+
+    public void setRandomEnableShieldPercent(int randomEnableShieldPercent) {
+        if (randomEnableShieldPercent < 0 || randomEnableShieldPercent > 100) {
+            throw new IllegalArgumentException("randomEnableShieldPercent must be in [0, 100].");
+        }
+        this.randomEnableShieldPercent = randomEnableShieldPercent;
+    }
+
+    public void setFixPrediction(boolean fixPrediction, double fixedPredictionTargetSpeedDelta) {
+        setFixPrediction(fixPrediction);
+        setFixedPredictionTargetSpeedDelta(fixedPredictionTargetSpeedDelta);
+    }
+
+    public void setFixedPredictionTargetSpeedDelta(double fixedPredictionTargetSpeedDelta) {
+        if (fixedPredictionTargetSpeedDelta < 0.0) {
+            throw new IllegalArgumentException("fixedPredictionTargetSpeedDelta cannot be negative.");
+        }
+        this.fixedPredictionTargetSpeedDelta = fixedPredictionTargetSpeedDelta;
+    }
+
+    public void setAggressiveV3TtcThreshold(double aggressiveV3TtcThreshold) {
+        if (aggressiveV3TtcThreshold <= 0.0) {
+            throw new IllegalArgumentException("aggressiveV3TtcThreshold must be positive.");
+        }
+        this.aggressiveV3TtcThreshold = aggressiveV3TtcThreshold;
+    }
+
+    public void setSandboxNpcPolitenessMode(SandboxNpcPolitenessMode sandboxNpcPolitenessMode) {
+        if (sandboxNpcPolitenessMode == null) {
+            throw new IllegalArgumentException("sandboxNpcPolitenessMode cannot be null.");
+        }
+        this.sandboxNpcPolitenessMode = sandboxNpcPolitenessMode;
     }
 
 }

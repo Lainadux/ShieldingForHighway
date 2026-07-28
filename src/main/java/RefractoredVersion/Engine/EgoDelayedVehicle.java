@@ -46,7 +46,7 @@ public class EgoDelayedVehicle extends EgoVehicle {
         if (!shieldDecision.safe) {
             action = Action.SLOWER;
         }
-        recordCrashLog(decision, parseAction(decision), shieldDecision, action);
+        recordDecisionLogs(decision, parseAction(decision), shieldDecision, action, false);
         recordAiDecision(!shieldDecision.safe);
         return action;
     }

@@ -24,6 +24,7 @@ package RefractoredVersion.Engine;
 
 import RefractoredVersion.Shield.AllSlowerShield;
 import RefractoredVersion.Shield.ExploreFutureActionShield;
+import RefractoredVersion.Shield.ExploreFutureActionSmarterShield;
 import RefractoredVersion.TestScript.Config.JavaMomentumConfig;
 import RefractoredVersion.TestScript.Config.ShieldType;
 
@@ -38,6 +39,7 @@ public class EgoVehicle extends Vehicle implements NonNpcVehicle, NotControlledB
     public ArrayList<Vehicle> detectedVehicles = new ArrayList<>();
     protected JavaHighwayAiClient.AiDecision lastAiDecision = new JavaHighwayAiClient.AiDecision();
     protected final List<BeforeCrashActionLog> beforeCrashActions = new ArrayList<>();
+    protected final List<ActionAcceptanceLog> actionAcceptanceSequence = new ArrayList<>();
     protected CollisionLog lastCollisionLog;
     private int aiDecisionCount = 0;
     private int rejectedAiDecisionCount = 0;
@@ -128,15 +130,16 @@ public class EgoVehicle extends Vehicle implements NonNpcVehicle, NotControlledB
         if (!shieldDecision.safe) {
             action = Action.SLOWER;
         }
-        recordCrashLog(decision, parseAction(decision), shieldDecision, action);
+        recordDecisionLogs(decision, parseAction(decision), shieldDecision, action, false);
         recordAiDecision(!shieldDecision.safe);
         applyAction(action);
     }
 
-    protected void recordCrashLog(JavaHighwayAiClient.AiDecision decision,
-                                  Action proposedAction,
-                                  ShieldDecision shieldDecision,
-                                  Action performedAction) {
+    protected void recordDecisionLogs(JavaHighwayAiClient.AiDecision decision,
+                                      Action proposedAction,
+                                      ShieldDecision shieldDecision,
+                                      Action performedAction,
+                                      boolean cacheHit) {
         beforeCrashActions.add(new BeforeCrashActionLog(
                 this.getEngine().stepsTaken,
                 this.getEngine().timeElapsed,
@@ -150,6 +153,32 @@ public class EgoVehicle extends Vehicle implements NonNpcVehicle, NotControlledB
         while (beforeCrashActions.size() > 3) {
             beforeCrashActions.remove(0);
         }
+
+        actionAcceptanceSequence.add(new ActionAcceptanceLog(
+                this.getEngine().stepsTaken,
+                this.getEngine().timeElapsed,
+                decisionIndex(),
+                decision.action,
+                decision.action_name,
+                proposedAction,
+                shieldDecision.safe,
+                cacheHit,
+                performedAction,
+                acceptanceValue(shieldDecision.safe, cacheHit)
+        ));
+    }
+
+    private int decisionIndex() {
+        return this.getEngine().getFrequency() == 0
+                ? 0
+                : this.getEngine().stepsTaken / this.getEngine().getFrequency();
+    }
+
+    private double acceptanceValue(boolean shieldSafe, boolean cacheHit) {
+        if (shieldSafe) {
+            return 1.0;
+        }
+        return cacheHit ? 0.5 : 0.0;
     }
 
     protected ShieldDecision verifyActionSafe(Action action) throws Exception {
@@ -170,6 +199,14 @@ public class EgoVehicle extends Vehicle implements NonNpcVehicle, NotControlledB
                         new ExploreFutureActionShield(this.getEngine(), futureActions);
                 boolean exploreSafe = exploreShield.verifySafe(action);
                 return new ShieldDecision(exploreSafe, exploreShield.getUnsafeDiagnosis());
+            case EXPLORE_FUTURE_SMARTER_ACTION:
+                ArrayList<Action> smarterFutureActions = config == null || config.getFutureActions() == null
+                        ? new ArrayList<>()
+                        : new ArrayList<>(config.getFutureActions());
+                ExploreFutureActionSmarterShield smarterShield =
+                        new ExploreFutureActionSmarterShield(this.getEngine(), smarterFutureActions);
+                boolean smarterSafe = smarterShield.verifySafe(action);
+                return new ShieldDecision(smarterSafe, smarterShield.getUnsafeDiagnosis());
             default:
                 throw new IllegalArgumentException("Unsupported shield type: " + shieldType);
         }
@@ -249,5 +286,9 @@ public class EgoVehicle extends Vehicle implements NonNpcVehicle, NotControlledB
 
     public List<BeforeCrashActionLog> retrieveBeforeCrashActions(){
         return new ArrayList<>(beforeCrashActions);
+    }
+
+    public List<ActionAcceptanceLog> retrieveActionAcceptanceSequence() {
+        return new ArrayList<>(actionAcceptanceSequence);
     }
 }

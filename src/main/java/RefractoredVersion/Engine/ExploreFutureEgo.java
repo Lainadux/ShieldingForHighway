@@ -2,6 +2,7 @@ package RefractoredVersion.Engine;
 
 import RefractoredVersion.Shield.AllSlowerShield;
 import RefractoredVersion.Shield.ExploreFutureActionShield;
+import RefractoredVersion.Shield.ExploreFutureActionSmarterShield;
 import RefractoredVersion.TestScript.Config.JavaMomentumConfig;
 import RefractoredVersion.TestScript.Config.ShieldType;
 import it.unicam.quasylab.jspear.distl.DisTLFormula;
@@ -36,6 +37,7 @@ public class ExploreFutureEgo extends EgoVehicle {
         this.lastAiDecision = decision;
         Action action = parseAction(decision);
         ShieldDecision shieldDecision = verifyActionSafe(action);
+        boolean cacheHit = false;
         if (shouldPrintDiagnostics()) {
             System.out.printf("%s AI decision: action=%d, action_name=%s, parsed_action=%s%n",
                     shieldDecision.safe ? "Safe" : "Unsafe",
@@ -48,12 +50,13 @@ public class ExploreFutureEgo extends EgoVehicle {
             if (cachedActions.isEmpty()) {
                 action = Action.SLOWER;
             } else {
+                cacheHit = true;
                 action = cachedActions.get(0);
                 cachedActions.remove(0);
             }
 
         }
-        recordCrashLog(decision, parseAction(decision), shieldDecision, action);
+        recordDecisionLogs(decision, parseAction(decision), shieldDecision, action, cacheHit);
         recordAiDecision(!shieldDecision.safe);
         applyAction(action);
     }
@@ -94,6 +97,34 @@ public class ExploreFutureEgo extends EgoVehicle {
                 }
 
                 return new ShieldDecision(false, lastShield == null ? lastDiagnosis : lastShield.getUnsafeDiagnosis());
+            case EXPLORE_FUTURE_SMARTER_ACTION:
+                ExploreFutureActionSmarterShield lastSmarterShield = null;
+                String lastSmarterDiagnosis = "";
+                for(Action f:this.firstFallbackOrderedActionSet){
+                    List<Action> fallbackSequence = List.of(f);
+                    ExploreFutureActionSmarterShield exploreShield =
+                            new ExploreFutureActionSmarterShield(this.getEngine(), fallbackSequence);
+                    List<DisTLFormula> exploreFutureCriteria = List.of(exploreShield.evaluateCutIn());
+                    boolean exploreSafe = exploreShield.verifySafe(action, exploreFutureCriteria);
+                    if (shouldPrintDiagnostics()) {
+                        System.out.println("----------");
+                        System.out.printf("%s smarter explore future shield: ai_action=%s, fallback_sequence=%s%n",
+                                exploreSafe ? "Safe" : "Unsafe",
+                                action,
+                                fallbackSequence);
+                        System.out.println(exploreShield.getUnsafeDiagnosis());
+                    }
+                    if(exploreSafe){
+                        rebuildCachedActions(fallbackSequence);
+                        return new ShieldDecision(true, exploreShield.getUnsafeDiagnosis());
+                    }
+                    lastSmarterShield = exploreShield;
+                    lastSmarterDiagnosis = exploreShield.getUnsafeDiagnosis();
+                }
+
+                return new ShieldDecision(false, lastSmarterShield == null
+                        ? lastSmarterDiagnosis
+                        : lastSmarterShield.getUnsafeDiagnosis());
             default:
                 throw new IllegalArgumentException("Unsupported shield type: " + shieldType);
         }
