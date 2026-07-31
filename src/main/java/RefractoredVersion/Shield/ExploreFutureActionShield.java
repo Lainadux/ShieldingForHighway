@@ -1215,7 +1215,7 @@ public class ExploreFutureActionShield {
 //        return closingSpeed * CHANGE_LANE_REAR_REACTION_TIME
 //                + closingSpeed * closingSpeed / (2.0 * CHANGE_LANE_REAR_MAX_BRAKE);
         double closingSpeed = Math.max(0.0, rearVx - egoVx) ;
-        return 4 * closingSpeed +3 ;
+        return 4 * closingSpeed  ;
     }
 
     private List<boolean[]> historicalCutInIntentByStep(List<List<Vehicle>> trace) {

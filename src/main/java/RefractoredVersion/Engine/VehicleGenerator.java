@@ -206,7 +206,7 @@ public class VehicleGenerator {
 
     private static double nextPythonStyleNpcX(ArrayList<Vehicle> vehicles, Random rand, double speed) {
         double defaultSpacing = 12.0 + speed;
-        double offset = defaultSpacing * Math.exp(-5.0 / 40.0 * DEFAULT_NUM_LANES);
+        double offset = 1.5 * defaultSpacing * Math.exp(-5.0 / 40.0 * DEFAULT_NUM_LANES);
         double x0 = vehicles.isEmpty() ? 3.0 * offset : maxVehicleX(vehicles);
         return x0 + offset * (0.9 + 0.2 * rand.nextDouble());
     }

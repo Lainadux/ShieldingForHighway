@@ -69,28 +69,30 @@ public class JavaHighwayEngineUtils {
     }
     private static boolean canRearEgoBrakeComfortablyAvoidCollision(Vehicle frontVehicle, Vehicle egoRearVehicle,
                                                                     double frontVehicleAcceleration) {
-        double bumperGap = frontVehicle.x - egoRearVehicle.x - egoRearVehicle.LENGTH;
-        if (bumperGap <= EGO_REAR_BRAKING_GAP_BUFFER) {
-            return false;
-        }
+        double rearPredictedAcceleration = computeIdmReasoningAcceleration(egoRearVehicle, frontVehicle);
+        return rearPredictedAcceleration > -LANE_CHANGE_MAX_BRAKING_IMPOSED;
+    }
 
-        double egoSpeed = longitudinalSpeed(egoRearVehicle);
-        double frontSpeed = longitudinalSpeed(frontVehicle);
-        double relativeSpeed = egoSpeed - frontSpeed;
-        double relativeAcceleration = -EGO_COMFORT_BRAKE_FOR_LANE_CHANGE - frontVehicleAcceleration;
-        if (relativeSpeed <= 0.0 && relativeAcceleration <= 0.0) {
-            return true;
-        }
+    private static double computeIdmReasoningAcceleration(Vehicle vehicle, Vehicle frontVehicle) {
+        double v = vehicle.vx;
+        double v0 = vehicle.targetSpeed;
+        double freeFlowTerm = 1 - Math.pow(v / v0, DELTA);
 
-        double closingDistanceDuringBrake;
-        if (relativeAcceleration < 0.0) {
-            double timeUntilNoClosing = Math.max(0.0, -relativeSpeed / relativeAcceleration);
-            closingDistanceDuringBrake = relativeSpeed * timeUntilNoClosing
-                    + 0.5 * relativeAcceleration * timeUntilNoClosing * timeUntilNoClosing;
+        if (frontVehicle == null) {
+            return COMFORT_ACC_MAX * freeFlowTerm;
         } else {
-            closingDistanceDuringBrake = Double.POSITIVE_INFINITY;
+            double dv = v - frontVehicle.vx;
+            double s = frontVehicle.x - vehicle.x - vehicle.LENGTH;
+            s = Math.max(s, 0.01);
+            double sStar = DISTANCE_WANTED + v * DEFAULT_TIME_WANTED +
+                    (v * dv) / (2 * Math.sqrt(COMFORT_ACC_MAX * Math.abs(COMFORT_ACC_MIN)));
+            sStar = Math.max(sStar, DISTANCE_WANTED);
+            double interactionTerm = Math.pow(sStar / s, 2);
+            double acceleration = COMFORT_ACC_MAX * (freeFlowTerm - interactionTerm);
+            return acceleration;
+
+
         }
-        return bumperGap - EGO_REAR_BRAKING_GAP_BUFFER >= closingDistanceDuringBrake;
     }
 
 
