@@ -36,11 +36,14 @@ public class TestScripts {
 
        //config.setShieldType(ShieldType.EXPLORE_FUTURE_DELAYED_ACTION);
        config.setShieldType(ShieldType.EXPLORE_FUTURE_ACTION);
+       config.setShieldType(ShieldType.EXPLORE_FUTURE_RSS_ACTION);
+       //config.setShieldType(ShieldType.EXPLORE_FUTURE_RSS_O_ACTION);
+      config.setShieldType(ShieldType.EXPLORE_FUTURE_BETTER_REFERENCE_ACTION);
        //config.setFutureActions(List.of());
 
 
-       //config.setEgoType(EgoType.EgoRandomEnableShield);
-       //config.setRandomEnableShieldPercent(60);
+//       config.setEgoType(EgoType.EgoRandomEnableShield);
+//       config.setRandomEnableShieldPercent(60);
 
        config.setEgoType(EgoType.ExploreFutureSlowerVehicle);
 
@@ -58,7 +61,7 @@ public class TestScripts {
        config.setMaxX(400);
        config.setDuration(30);
        config.setFrequency(20);
-       config.setNumsOfSimulations(30);
+       config.setNumsOfSimulations(300);
        // generate logs in the "EGOTYPE_AIPROFILE_LOGS/timestamp/..."
        config.setPATH_TO_SAVE("src/main/java/RefractoredVersion/logs/" + System.currentTimeMillis() + "/");
        config.setMaxTargetSpeed(40);
@@ -71,8 +74,8 @@ public class TestScripts {
 
        config.setTestFunction(TestFunction.RECOVER);
        //config.setRecoverShieldTypeOverride(ShieldType.Ego);
-         //config.setTestFunction(TestFunction.GEN_LOGS);
-       String logsRoot = "C:\\MSCProject\\codes\\RefractoredVersionRepo\\src\\main\\java\\RefractoredVersion\\logs\\1785076727567\\ExploreFutureSlowerVehicle_adversarial_LOGS\\safe_20260726_164012_369_21.json ";
+       config.setTestFunction(TestFunction.GEN_LOGS);
+       String logsRoot = "C:\\MSCProject\\codes\\RefractoredVersionRepo\\src\\main\\java\\RefractoredVersion\\logs\\1785420455927\\EgoVehicle_adversarial_EXPLORE_FUTURE_RSS_O_ACTION_LOGS\\crashed_20260730_160818_619_45.json";
 
        config.setRecoverInitialStateFile(logsRoot);
 

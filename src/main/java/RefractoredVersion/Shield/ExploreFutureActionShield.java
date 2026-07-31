@@ -35,12 +35,12 @@ import java.util.Map;
 
 public class ExploreFutureActionShield {
     private static final int DEFAULT_PREDICTION_TIME = 1;
-    private static final int EVOLUTION_SEQUENCE_SIZE = 30;
-    private static final double CRASH_DISTANCE_THRESHOLD = 0.0;
-    private static final double FIRST_SECOND_SAFETY_DISTANCE_THRESHOLD = 0.1;
-    private static final double STABILITY_DISTANCE_THRESHOLD = 0.1;
-    private static final double MIN_ACCEPTABLE_ROBUSTNESS = 0.0;
-    private static final double VEHICLE_LENGTH = 5.0;
+    protected static final int EVOLUTION_SEQUENCE_SIZE = 30;
+    protected static final double CRASH_DISTANCE_THRESHOLD = 0.0;
+    protected static final double FIRST_SECOND_SAFETY_DISTANCE_THRESHOLD = 0.1;
+    protected static final double STABILITY_DISTANCE_THRESHOLD = 0.1;
+    protected static final double MIN_ACCEPTABLE_ROBUSTNESS = 0.0;
+    protected static final double VEHICLE_LENGTH = 5.0;
     private static final double MIN_STABLE_FRONT_GAP = 15.0;
     private static final double MIN_CLOSE_FRONT_GAP = 10.0;
     private static final double MAX_STABLE_RELATIVE_SPEED = 2.0;
@@ -48,24 +48,24 @@ public class ExploreFutureActionShield {
     private static final double DEFAULT_AGGRESSIVE_V3_TTC_THRESHOLD = 4.0;
     private static final double FIRST_SECOND_LOOKAHEAD_TIME = 1.0;
     private static final double FIRST_SECOND_MIN_FRONT_GAP = 2.0;
-    private static final double CHANGE_LANE_REAR_THREAT_DISTANCE_THRESHOLD = 0.1;
-    private static final double CHANGE_LANE_LOW_SPEED_DISTANCE_THRESHOLD = 0.1;
+    protected static final double CHANGE_LANE_REAR_THREAT_DISTANCE_THRESHOLD = 0.1;
+    protected static final double CHANGE_LANE_LOW_SPEED_DISTANCE_THRESHOLD = 0.1;
     private static final double CHANGE_LANE_MIN_SPEED = 5.0;
     private static final double CHANGE_LANE_REAR_REACTION_TIME = 0.1;
     private static final double CHANGE_LANE_REAR_MAX_BRAKE = 3.0;
     private static final double MIN_FRONT_ACCELERATION_UNCERTAINTY = 0.5;
 
-    private final JavaHighwayEngine sourceEngine;
+    protected final JavaHighwayEngine sourceEngine;
     private final int  predictionTime;
     protected SandboxJavaHighwayEngine sandboxEngine;
     private int predictionVehicleCount = -1;
-    private EvolutionSequence sequence;
-    private double lastCollisionRobustness = Double.NaN;
-    private double lastFirstSecondSafetyRobustness = Double.NaN;
-    private double lastStabilityRobustness = Double.NaN;
-    private double lastChangeLaneRearThreatRobustness = Double.NaN;
-    private double lastChangeLaneLowSpeedRobustness = Double.NaN;
-    private double lastShieldRobustness = Double.NaN;
+    protected EvolutionSequence sequence;
+    protected double lastCollisionRobustness = Double.NaN;
+    protected double lastFirstSecondSafetyRobustness = Double.NaN;
+    protected double lastStabilityRobustness = Double.NaN;
+    protected double lastChangeLaneRearThreatRobustness = Double.NaN;
+    protected double lastChangeLaneLowSpeedRobustness = Double.NaN;
+    protected double lastShieldRobustness = Double.NaN;
 
     public final List<Action> futureActions = new ArrayList<>();
 
@@ -104,7 +104,7 @@ public class ExploreFutureActionShield {
     }
 
 
-    private int lastPredictionStep(List<List<List<Vehicle>>> sampleTraces) {
+    protected int lastPredictionStep(List<List<List<Vehicle>>> sampleTraces) {
         return Math.max(0, sampleTraces.get(0).size() - 1);
     }
     public boolean verifySafe(Action candidateAction) throws Exception{
@@ -131,6 +131,50 @@ public class ExploreFutureActionShield {
                 .orElse("Shield diagnosis unavailable: no prediction state available.");
     }
 
+    public double getLastCollisionRobustness() {
+        return lastCollisionRobustness;
+    }
+
+    public double getLastFirstSecondSafetyRobustness() {
+        return lastFirstSecondSafetyRobustness;
+    }
+
+    public double getLastStabilityRobustness() {
+        return lastStabilityRobustness;
+    }
+
+    public double getLastChangeLaneRearThreatRobustness() {
+        return lastChangeLaneRearThreatRobustness;
+    }
+
+    public double getLastChangeLaneLowSpeedRobustness() {
+        return lastChangeLaneLowSpeedRobustness;
+    }
+
+    public double getLastShieldRobustness() {
+        return lastShieldRobustness;
+    }
+
+    public String getFailedSafetyCriteriaCsv() {
+        List<String> failed = new ArrayList<>();
+        if (lastCollisionRobustness < MIN_ACCEPTABLE_ROBUSTNESS) {
+            failed.add("collision");
+        }
+        if (lastFirstSecondSafetyRobustness < MIN_ACCEPTABLE_ROBUSTNESS) {
+            failed.add("firstSecondSafety");
+        }
+        if (lastStabilityRobustness < MIN_ACCEPTABLE_ROBUSTNESS) {
+            failed.add("stability");
+        }
+        if (lastChangeLaneRearThreatRobustness < MIN_ACCEPTABLE_ROBUSTNESS) {
+            failed.add("changeLaneRearThreat");
+        }
+        if (lastChangeLaneLowSpeedRobustness < MIN_ACCEPTABLE_ROBUSTNESS) {
+            failed.add("changeLaneLowSpeed");
+        }
+        return String.join(",", failed);
+    }
+
     private List<Action> toActionSequence(Action candidateAction) {
         List<Action> actionSequence = new ArrayList<>();
         actionSequence.add(candidateAction);
@@ -138,7 +182,7 @@ public class ExploreFutureActionShield {
         return actionSequence;
     }
 
-    private boolean verifySafeSequence(List<Action> actionSequence) throws Exception {
+    public boolean verifySafeSequence(List<Action> actionSequence) throws Exception {
 
         List<List<List<Vehicle>>> sampleTraces = predictCandidateSampleTraces(actionSequence);
         sequence = new FixedEvolutionSequence(toSampleSetsFromSampleTraces(sampleTraces, actionSequence.get(0)));
@@ -279,7 +323,7 @@ public class ExploreFutureActionShield {
                 toSampleSetsFromSampleTraces(predictCandidateSampleTraces(actionSequence), actionSequence.get(0)));
     }
 
-    private List<List<List<Vehicle>>> predictCandidateSampleTraces(List<Action> actionSequence) throws Exception {
+    protected List<List<List<Vehicle>>> predictCandidateSampleTraces(List<Action> actionSequence) throws Exception {
         List<List<List<Vehicle>>> sampleTraces = new ArrayList<>();
         for (int sample = 0; sample < EVOLUTION_SEQUENCE_SIZE; sample++) {
             sampleTraces.add(predictCandidateTrace(actionSequence));
@@ -453,8 +497,8 @@ public class ExploreFutureActionShield {
         double maxTargetSpeed = vehicle.speed + delta;
         return minTargetSpeed + Math.random() * (maxTargetSpeed - minTargetSpeed);
     }
-    private List<SampleSet<SystemState>> toSampleSetsFromSampleTraces(List<List<List<Vehicle>>> sampleTraces,
-                                                                      Action initialIntention) {
+    protected List<SampleSet<SystemState>> toSampleSetsFromSampleTraces(List<List<List<Vehicle>>> sampleTraces,
+                                                                        Action initialIntention) {
         if (sampleTraces == null || sampleTraces.isEmpty() || sampleTraces.get(0).isEmpty()) {
             throw new IllegalArgumentException("Sample traces must contain at least one sample and one state");
         }
@@ -485,7 +529,7 @@ public class ExploreFutureActionShield {
         return toDataState(vehiclesAtStep, new boolean[vehicleCount()], null);
     }
 
-    private DataState toDataState(List<Vehicle> vehiclesAtStep, boolean[] historicalCutInIntent,
+    protected DataState toDataState(List<Vehicle> vehiclesAtStep, boolean[] historicalCutInIntent,
                                   Action initialIntention) {
         Map<Integer, Double> values = new HashMap<>();
         int vehicleCount = vehicleCount();
@@ -515,7 +559,9 @@ public class ExploreFutureActionShield {
                     historicalCutInIntent != null
                             && i < historicalCutInIntent.length
                             && historicalCutInIntent[i] ? 1.0 : 0.0);
+            values.put(offset + VarTable.rssStabilityReference.ordinal(), 0.0);
         }
+        populateSubclassVehicleValues(values, vehiclesAtStep, historicalCutInIntent, initialIntention);
 
         values.put(auxiliaryIndex(AuxiliarySingletonVarTable.crashed),
                 hasCollision(vehiclesAtStep) ? 1.0 : 0.0);
@@ -532,17 +578,23 @@ public class ExploreFutureActionShield {
                 index -> values.getOrDefault(index, Double.NaN));
     }
 
-    private int auxiliaryIndex(AuxiliarySingletonVarTable variable) {
+    protected int auxiliaryIndex(AuxiliarySingletonVarTable variable) {
         return AuxiliarySingletonVarTable.index(vehicleCount(), variable);
     }
 
-    private int vehicleCount() {
+    protected void populateSubclassVehicleValues(Map<Integer, Double> values,
+                                                 List<Vehicle> vehiclesAtStep,
+                                                 boolean[] historicalCutInIntent,
+                                                 Action initialIntention) {
+    }
+
+    protected int vehicleCount() {
         if (predictionVehicleCount <= 0) {
             throw new IllegalStateException("Prediction vehicle count is not initialized");
         }
         return predictionVehicleCount;
     }
-    private boolean hasCollision(List<Vehicle> vehiclesAtStep) {
+    protected boolean hasCollision(List<Vehicle> vehiclesAtStep) {
         for (int i = 0; i < vehiclesAtStep.size(); i++) {
             for (int j = i + 1; j < vehiclesAtStep.size(); j++) {
                 Vehicle first = vehiclesAtStep.get(i);
@@ -559,21 +611,21 @@ public class ExploreFutureActionShield {
         }
         return false;
     }
-    private int vehicleOffset(int vehicleIndex) {
+    protected int vehicleOffset(int vehicleIndex) {
         return vehicleIndex * VarTable.values().length;
     }
-    private double parseVehicleId(String id, int fallback) {
+    protected double parseVehicleId(String id, int fallback) {
         try {
             return Double.parseDouble(id);
         } catch (Exception ignored) {
             return fallback;
         }
     }
-    private DataState resetCrashState(RandomGenerator rg, DataState state) {
+    protected DataState resetCrashState(RandomGenerator rg, DataState state) {
         return state.apply(List.of(new DataStateUpdate(auxiliaryIndex(AuxiliarySingletonVarTable.crashed), 0.0)));
     }
 
-    private DataState stabilizeEgoAtFrontSafetyDistance(RandomGenerator rg, DataState state) {
+    protected DataState stabilizeEgoAtFrontSafetyDistance(RandomGenerator rg, DataState state) {
         int egoIndex = getEgoVehicleIndex(state);
         if (egoIndex < 0) {
             return state;
@@ -599,7 +651,7 @@ public class ExploreFutureActionShield {
         )));
     }
 
-    private DataState stabilizeEgoAgainstFrontVehicle(RandomGenerator rg, DataState state) {
+    protected DataState stabilizeEgoAgainstFrontVehicle(RandomGenerator rg, DataState state) {
         int egoIndex = getEgoVehicleIndex(state);
         if (egoIndex < 0) {
             return state;
@@ -629,7 +681,7 @@ public class ExploreFutureActionShield {
         ));
     }
 
-    private DataState stabilizeChangeLaneLowSpeed(RandomGenerator rg, DataState state) {
+    protected DataState stabilizeChangeLaneLowSpeed(RandomGenerator rg, DataState state) {
         if (state.get(auxiliaryIndex(AuxiliarySingletonVarTable.isInitialChangeLane)) <= 0.0) {
             return state;
         }
@@ -648,7 +700,7 @@ public class ExploreFutureActionShield {
         ));
     }
 
-    private DataState stabilizeChangeLaneRearThreat(RandomGenerator rg, DataState state) {
+    protected DataState stabilizeChangeLaneRearThreat(RandomGenerator rg, DataState state) {
         if (state.get(auxiliaryIndex(AuxiliarySingletonVarTable.isInitialChangeLane)) <= 0.0) {
             return state;
         }
@@ -717,11 +769,11 @@ public class ExploreFutureActionShield {
         return state.apply(updates);
     }
 
-    private double crashPenalty(DataState state) {
+    protected double crashPenalty(DataState state) {
         return state.get(auxiliaryIndex(AuxiliarySingletonVarTable.crashed)) > 0.0 ? 1.0 : 0.0;
     }
 
-    private double firstSecondFrontSafetyPenalty(DataState state) {
+    protected double firstSecondFrontSafetyPenalty(DataState state) {
         int egoIndex = getEgoVehicleIndex(state);
         if (egoIndex < 0) {
             return 0.0;
@@ -750,7 +802,7 @@ public class ExploreFutureActionShield {
         return Math.min(1.0, Math.max(0.0, safetyGap - frontGap) / safetyGap);
     }
 
-    private double changeLaneLowSpeedPenalty(DataState state) {
+    protected double changeLaneLowSpeedPenalty(DataState state) {
         if (state.get(auxiliaryIndex(AuxiliarySingletonVarTable.isInitialChangeLane)) <= 0.0) {
             return 0.0;
         }
@@ -765,7 +817,7 @@ public class ExploreFutureActionShield {
         return Math.min(1.0, (CHANGE_LANE_MIN_SPEED - egoSpeed) / CHANGE_LANE_MIN_SPEED);
     }
 
-    private double changeLaneRearThreatPenalty(DataState state) {
+    protected double changeLaneRearThreatPenalty(DataState state) {
         int egoIndex = getEgoVehicleIndex(state);
         int rearIndex = getConfiguredRearThreatRearVehicleIndex(state);
         if (egoIndex < 0 || rearIndex < 0) {
@@ -819,7 +871,7 @@ public class ExploreFutureActionShield {
         return Math.min(1.0, (requiredGap - rearGap) / requiredGap);
     }
 
-    private double frontVehicleStabilityPenalty(DataState state) {
+    protected double frontVehicleStabilityPenalty(DataState state) {
         int egoIndex = getEgoVehicleIndex(state);
         if (egoIndex < 0) {
             return 0.0;
@@ -832,7 +884,7 @@ public class ExploreFutureActionShield {
         return totalPenalty;
     }
 
-    private double frontVehicleStabilityPenalty(DataState state, int egoIndex, int frontIndex) {
+    protected double frontVehicleStabilityPenalty(DataState state, int egoIndex, int frontIndex) {
         int egoOffset = vehicleOffset(egoIndex);
         int frontOffset = vehicleOffset(frontIndex);
         double frontGap = state.get(frontOffset + VarTable.x.ordinal())
@@ -869,12 +921,12 @@ public class ExploreFutureActionShield {
         return Math.min(1.0, (threshold - ttc) / threshold);
     }
 
-    private double aggressiveV3TtcThreshold() {
+    protected double aggressiveV3TtcThreshold() {
         return sourceEngine.config == null
                 ? DEFAULT_AGGRESSIVE_V3_TTC_THRESHOLD
                 : sourceEngine.config.getAggressiveV3TtcThreshold();
     }
-    private String diagnoseState(DataState state, int lastStep) {
+    protected String diagnoseState(DataState state, int lastStep) {
         int egoIndex = getEgoVehicleIndex(state);
         StringBuilder diagnosis = new StringBuilder();
         diagnosis.append(String.format("Shield diagnosis at prediction step %d: crashed=%.0f",
@@ -944,7 +996,7 @@ public class ExploreFutureActionShield {
         }
         return diagnosis.toString();
     }
-    private int getEgoVehicleIndex(DataState state) {
+    protected int getEgoVehicleIndex(DataState state) {
         for (int i = 0; i < vehicleCount(); i++) {
             if (state.get(vehicleOffset(i) + VarTable.role.ordinal()) == 0.0) {
                 return i;
@@ -980,7 +1032,7 @@ public class ExploreFutureActionShield {
         return rearIndex;
     }
 
-    private List<Integer> getFinalStabilityReferenceVehicles(DataState state, int egoIndex) {
+    protected List<Integer> getFinalStabilityReferenceVehicles(DataState state, int egoIndex) {
         int egoLane = (int) state.get(vehicleOffset(egoIndex) + VarTable.lane_index.ordinal());
         double egoX = state.get(vehicleOffset(egoIndex) + VarTable.x.ordinal());
         int closestReferenceIndex = -1;
@@ -1014,7 +1066,7 @@ public class ExploreFutureActionShield {
         }
         return vehicles;
     }
-    private boolean hasHistoricalCutInIntentTowardEgoLane(DataState state, int vehicleIndex, int egoLane) {
+    protected boolean hasHistoricalCutInIntentTowardEgoLane(DataState state, int vehicleIndex, int egoLane) {
         int offset = vehicleOffset(vehicleIndex);
         double historicalCutInIntent = state.get(offset + VarTable.historicalCutInIntent.ordinal());
         if (!Double.isNaN(historicalCutInIntent)) {
@@ -1024,11 +1076,11 @@ public class ExploreFutureActionShield {
         return targetLane == egoLane;
     }
 
-    private boolean isCandidateChangeLane(List<Vehicle> vehiclesAtStep, Action initialIntention) {
+    protected boolean isCandidateChangeLane(List<Vehicle> vehiclesAtStep, Action initialIntention) {
         return candidateTargetLane(vehiclesAtStep, initialIntention) >= 0;
     }
 
-    private int candidateTargetLane(List<Vehicle> vehiclesAtStep, Action initialIntention) {
+    protected int candidateTargetLane(List<Vehicle> vehiclesAtStep, Action initialIntention) {
         int egoIndex = egoVehicleIndex(vehiclesAtStep);
         if (egoIndex < 0 || initialIntention == null) {
             return -1;
@@ -1044,7 +1096,7 @@ public class ExploreFutureActionShield {
         }
     }
 
-    private int egoVehicleIndex(List<Vehicle> vehiclesAtStep) {
+    protected int egoVehicleIndex(List<Vehicle> vehiclesAtStep) {
         for (int i = 0; i < vehiclesAtStep.size(); i++) {
             if ("EGO".equals(vehiclesAtStep.get(i).role)) {
                 return i;
@@ -1053,7 +1105,7 @@ public class ExploreFutureActionShield {
         return -1;
     }
 
-    private void populateRearThreatAuxiliaryValues(Map<Integer, Double> values, List<Vehicle> vehiclesAtStep) {
+    protected void populateRearThreatAuxiliaryValues(Map<Integer, Double> values, List<Vehicle> vehiclesAtStep) {
         int egoIndex = egoVehicleIndex(vehiclesAtStep);
         int targetLane = candidateTargetLane(vehiclesAtStep, initialIntention(values));
         if (egoIndex < 0 || targetLane < 0) {
@@ -1076,7 +1128,7 @@ public class ExploreFutureActionShield {
                 initialRawIdmAcceleration(values, rearIndex, rearFrontIndex));
     }
 
-    private Action initialIntention(Map<Integer, Double> values) {
+    protected Action initialIntention(Map<Integer, Double> values) {
         double value = values.getOrDefault(auxiliaryIndex(AuxiliarySingletonVarTable.initialIntention), -1.0);
         if (value < 0.0 || Double.isNaN(value)) {
             return null;
@@ -1084,8 +1136,8 @@ public class ExploreFutureActionShield {
         return Action.fromValue((int) Math.round(value));
     }
 
-    private int initialRearVehicleIndexInLane(Map<Integer, Double> values, int vehicleCount, int egoIndex,
-                                              int targetLane) {
+    protected int initialRearVehicleIndexInLane(Map<Integer, Double> values, int vehicleCount, int egoIndex,
+                                                int targetLane) {
         int egoOffset = vehicleOffset(egoIndex);
         double egoX = values.get(egoOffset + VarTable.x.ordinal());
         int rearIndex = -1;
@@ -1159,9 +1211,11 @@ public class ExploreFutureActionShield {
     }
 
     private double requiredGapForRearDelayedBraking(double rearVx, double egoVx) {
-        double closingSpeed = Math.max(0.0, rearVx - egoVx);
-        return closingSpeed * CHANGE_LANE_REAR_REACTION_TIME
-                + closingSpeed * closingSpeed / (2.0 * CHANGE_LANE_REAR_MAX_BRAKE);
+//        double closingSpeed = Math.max(0.0, rearVx - egoVx);
+//        return closingSpeed * CHANGE_LANE_REAR_REACTION_TIME
+//                + closingSpeed * closingSpeed / (2.0 * CHANGE_LANE_REAR_MAX_BRAKE);
+        double closingSpeed = Math.max(0.0, rearVx - egoVx) ;
+        return 4 * closingSpeed +3 ;
     }
 
     private List<boolean[]> historicalCutInIntentByStep(List<List<Vehicle>> trace) {
@@ -1198,7 +1252,7 @@ public class ExploreFutureActionShield {
     private String vehicleId(DataState state, int vehicleIndex) {
         return String.valueOf((int) state.get(vehicleOffset(vehicleIndex) + VarTable.id.ordinal()));
     }
-    private int getFrontVehicleIndexInLane(DataState state, int egoIndex, int targetLane) {
+    protected int getFrontVehicleIndexInLane(DataState state, int egoIndex, int targetLane) {
         if (egoIndex < 0) {
             return -1;
         }

@@ -10,6 +10,13 @@ public record ActionAcceptanceLog(
         boolean shieldSafe,
         boolean cacheHit,
         Action performedAction,
-        double acceptanceValue
+        double acceptanceValue,
+        String failedSafetyCriteria,
+        Double collisionRobustness,
+        Double firstSecondSafetyRobustness,
+        Double stabilityRobustness,
+        Double rearThreatRobustness,
+        Double lowSpeedLaneChangeRobustness,
+        Double shieldRobustness
 ) {
 }

@@ -7,6 +7,11 @@ import java.nio.file.Path;
 public class LogDirectory {
     public Path forConfig(JavaMomentumConfig config) {
         return Path.of(config.getPATH_TO_SAVE())
-                .resolve(config.getEgoType().name() + "_" + config.getAiProfile().name() + "_LOGS");
+                .resolve(nameFor(config));
+    }
+
+    private String nameFor(JavaMomentumConfig config) {
+        String shieldType = config.getShieldType() == null ? "NO_SHIELD_TYPE" : config.getShieldType().name();
+        return config.getEgoType().name() + "_" + config.getAiProfile().name() + "_" + shieldType + "_LOGS";
     }
 }

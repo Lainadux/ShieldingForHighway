@@ -25,6 +25,9 @@ package RefractoredVersion.Engine;
 import RefractoredVersion.Shield.AllSlowerShield;
 import RefractoredVersion.Shield.ExploreFutureActionShield;
 import RefractoredVersion.Shield.ExploreFutureActionSmarterShield;
+import RefractoredVersion.Shield.ExploreFutureBetterReferenceShield;
+import RefractoredVersion.Shield.ExploreFutureRssOShield;
+import RefractoredVersion.Shield.ExploreFutureRssShield;
 import RefractoredVersion.TestScript.Config.JavaMomentumConfig;
 import RefractoredVersion.TestScript.Config.ShieldType;
 
@@ -164,7 +167,14 @@ public class EgoVehicle extends Vehicle implements NonNpcVehicle, NotControlledB
                 shieldDecision.safe,
                 cacheHit,
                 performedAction,
-                acceptanceValue(shieldDecision.safe, cacheHit)
+                acceptanceValue(shieldDecision.safe, cacheHit),
+                shieldDecision.failedSafetyCriteria,
+                shieldDecision.collisionRobustness,
+                shieldDecision.firstSecondSafetyRobustness,
+                shieldDecision.stabilityRobustness,
+                shieldDecision.rearThreatRobustness,
+                shieldDecision.lowSpeedLaneChangeRobustness,
+                shieldDecision.shieldRobustness
         ));
     }
 
@@ -199,6 +209,30 @@ public class EgoVehicle extends Vehicle implements NonNpcVehicle, NotControlledB
                         new ExploreFutureActionShield(this.getEngine(), futureActions);
                 boolean exploreSafe = exploreShield.verifySafe(action);
                 return new ShieldDecision(exploreSafe, exploreShield.getUnsafeDiagnosis());
+            case EXPLORE_FUTURE_BETTER_REFERENCE_ACTION:
+                ArrayList<Action> betterFutureActions = config == null || config.getFutureActions() == null
+                        ? new ArrayList<>()
+                        : new ArrayList<>(config.getFutureActions());
+                ExploreFutureBetterReferenceShield betterShield =
+                        new ExploreFutureBetterReferenceShield(this.getEngine(), betterFutureActions);
+                boolean betterSafe = betterShield.verifySafe(action);
+                return new ShieldDecision(betterSafe, betterShield.getUnsafeDiagnosis());
+            case EXPLORE_FUTURE_RSS_ACTION:
+                ArrayList<Action> rssFutureActions = config == null || config.getFutureActions() == null
+                        ? new ArrayList<>()
+                        : new ArrayList<>(config.getFutureActions());
+                ExploreFutureRssShield rssShield =
+                        new ExploreFutureRssShield(this.getEngine(), rssFutureActions);
+                boolean rssSafe = rssShield.verifySafe(action);
+                return new ShieldDecision(rssSafe, rssShield.getUnsafeDiagnosis());
+            case EXPLORE_FUTURE_RSS_O_ACTION:
+                ArrayList<Action> rssOFutureActions = config == null || config.getFutureActions() == null
+                        ? new ArrayList<>()
+                        : new ArrayList<>(config.getFutureActions());
+                ExploreFutureRssOShield rssOShield =
+                        new ExploreFutureRssOShield(this.getEngine(), rssOFutureActions);
+                boolean rssOSafe = rssOShield.verifySafe(action);
+                return new ShieldDecision(rssOSafe, rssOShield.getUnsafeDiagnosis());
             case EXPLORE_FUTURE_SMARTER_ACTION:
                 ArrayList<Action> smarterFutureActions = config == null || config.getFutureActions() == null
                         ? new ArrayList<>()
@@ -215,11 +249,65 @@ public class EgoVehicle extends Vehicle implements NonNpcVehicle, NotControlledB
     protected static class ShieldDecision {
         protected final boolean safe;
         protected final String diagnosis;
+        protected final String failedSafetyCriteria;
+        protected final Double collisionRobustness;
+        protected final Double firstSecondSafetyRobustness;
+        protected final Double stabilityRobustness;
+        protected final Double rearThreatRobustness;
+        protected final Double lowSpeedLaneChangeRobustness;
+        protected final Double shieldRobustness;
 
         protected ShieldDecision(boolean safe, String diagnosis) {
+            this(safe, diagnosis, "", null, null, null, null, null, null);
+        }
+
+        protected ShieldDecision(boolean safe,
+                                 String diagnosis,
+                                 String failedSafetyCriteria,
+                                 Double collisionRobustness,
+                                 Double firstSecondSafetyRobustness,
+                                 Double stabilityRobustness,
+                                 Double rearThreatRobustness,
+                                 Double lowSpeedLaneChangeRobustness,
+                                 Double shieldRobustness) {
             this.safe = safe;
             this.diagnosis = diagnosis;
+            this.failedSafetyCriteria = failedSafetyCriteria == null ? "" : failedSafetyCriteria;
+            this.collisionRobustness = collisionRobustness;
+            this.firstSecondSafetyRobustness = firstSecondSafetyRobustness;
+            this.stabilityRobustness = stabilityRobustness;
+            this.rearThreatRobustness = rearThreatRobustness;
+            this.lowSpeedLaneChangeRobustness = lowSpeedLaneChangeRobustness;
+            this.shieldRobustness = shieldRobustness;
         }
+    }
+
+    protected ShieldDecision shieldDecisionFrom(boolean safe, AllSlowerShield shield) {
+        return new ShieldDecision(
+                safe,
+                shield.getUnsafeDiagnosis(),
+                shield.getFailedSafetyCriteriaCsv(),
+                shield.getLastCollisionRobustness(),
+                shield.getLastFirstSecondSafetyRobustness(),
+                shield.getLastStabilityRobustness(),
+                shield.getLastChangeLaneRearThreatRobustness(),
+                shield.getLastChangeLaneLowSpeedRobustness(),
+                shield.getLastShieldRobustness()
+        );
+    }
+
+    protected ShieldDecision shieldDecisionFrom(boolean safe, ExploreFutureActionShield shield) {
+        return new ShieldDecision(
+                safe,
+                shield.getUnsafeDiagnosis(),
+                shield.getFailedSafetyCriteriaCsv(),
+                shield.getLastCollisionRobustness(),
+                shield.getLastFirstSecondSafetyRobustness(),
+                shield.getLastStabilityRobustness(),
+                shield.getLastChangeLaneRearThreatRobustness(),
+                shield.getLastChangeLaneLowSpeedRobustness(),
+                shield.getLastShieldRobustness()
+        );
     }
 
     protected void recordAiDecision(boolean rejected) {

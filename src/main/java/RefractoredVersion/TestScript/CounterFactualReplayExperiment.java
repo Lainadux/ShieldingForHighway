@@ -64,7 +64,7 @@ public class CounterFactualReplayExperiment {
     private static void generateCounterFactualLogs() throws Exception {
         JavaMomentumConfig config = baseConfig();
         Path logDir = Path.of(config.getPATH_TO_SAVE())
-                .resolve(config.getEgoType().name() + "_" + config.getAiProfile().name() + "_LOGS");
+                .resolve(logDirectoryName(config));
 
         List<CounterFactualEpisodeLog> episodeLogs = new ArrayList<>();
         int crashedRuns = 0;
@@ -98,6 +98,11 @@ public class CounterFactualReplayExperiment {
                         episodeLogs.stream().mapToInt(log -> log.counterFactualReplayLogs.size()).sum()
                 )));
         System.out.println("Counterfactual logs: " + logDir.toAbsolutePath());
+    }
+
+    private static String logDirectoryName(JavaMomentumConfig config) {
+        String shieldType = config.getShieldType() == null ? "NO_SHIELD_TYPE" : config.getShieldType().name();
+        return config.getEgoType().name() + "_" + config.getAiProfile().name() + "_" + shieldType + "_LOGS";
     }
 
     private static SimulationResult runCounterFactualSimulation(JavaMomentumConfig config) throws Exception {

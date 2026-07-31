@@ -3,6 +3,9 @@ package RefractoredVersion.Engine;
 import RefractoredVersion.Shield.AllSlowerShield;
 import RefractoredVersion.Shield.ExploreFutureActionShield;
 import RefractoredVersion.Shield.ExploreFutureActionSmarterShield;
+import RefractoredVersion.Shield.ExploreFutureBetterReferenceShield;
+import RefractoredVersion.Shield.ExploreFutureRssOShield;
+import RefractoredVersion.Shield.ExploreFutureRssShield;
 import RefractoredVersion.TestScript.Config.JavaMomentumConfig;
 import RefractoredVersion.TestScript.Config.ShieldType;
 import it.unicam.quasylab.jspear.distl.DisTLFormula;
@@ -97,6 +100,88 @@ public class ExploreFutureEgo extends EgoVehicle {
                 }
 
                 return new ShieldDecision(false, lastShield == null ? lastDiagnosis : lastShield.getUnsafeDiagnosis());
+            case EXPLORE_FUTURE_BETTER_REFERENCE_ACTION:
+                ExploreFutureBetterReferenceShield lastBetterShield = null;
+                String lastBetterDiagnosis = "";
+                for(Action f:this.firstFallbackOrderedActionSet){
+                    List<Action> fallbackSequence = List.of(f);
+                    ExploreFutureBetterReferenceShield betterShield =
+                            new ExploreFutureBetterReferenceShield(this.getEngine(), fallbackSequence);
+                    List<DisTLFormula> exploreFutureCriteria = List.of(betterShield.evaluateCutIn());
+                    boolean betterSafe = betterShield.verifySafe(action, exploreFutureCriteria);
+                    if (shouldPrintDiagnostics()) {
+                        System.out.println("----------");
+                        System.out.printf("%s better reference explore future shield: ai_action=%s, fallback_sequence=%s%n",
+                                betterSafe ? "Safe" : "Unsafe",
+                                action,
+                                fallbackSequence);
+                        System.out.println(betterShield.getUnsafeDiagnosis());
+                    }
+                    if(betterSafe){
+                        rebuildCachedActions(fallbackSequence);
+                        return new ShieldDecision(true, betterShield.getUnsafeDiagnosis());
+                    }
+                    lastBetterShield = betterShield;
+                    lastBetterDiagnosis = betterShield.getUnsafeDiagnosis();
+                }
+
+                return new ShieldDecision(false, lastBetterShield == null
+                        ? lastBetterDiagnosis
+                        : lastBetterShield.getUnsafeDiagnosis());
+            case EXPLORE_FUTURE_RSS_ACTION:
+                ExploreFutureRssShield lastRssShield = null;
+                String lastRssDiagnosis = "";
+                for(Action f:this.firstFallbackOrderedActionSet){
+                    List<Action> fallbackSequence = List.of(f);
+                    ExploreFutureRssShield rssShield = new ExploreFutureRssShield(this.getEngine(), fallbackSequence);
+                    List<DisTLFormula> exploreFutureCriteria = List.of(rssShield.evaluateCutIn());
+                    boolean rssSafe = rssShield.verifySafe(action, exploreFutureCriteria);
+                    if (shouldPrintDiagnostics()) {
+                        System.out.println("----------");
+                        System.out.printf("%s rss explore future shield: ai_action=%s, fallback_sequence=%s%n",
+                                rssSafe ? "Safe" : "Unsafe",
+                                action,
+                                fallbackSequence);
+                        System.out.println(rssShield.getUnsafeDiagnosis());
+                    }
+                    if(rssSafe){
+                        rebuildCachedActions(fallbackSequence);
+                        return new ShieldDecision(true, rssShield.getUnsafeDiagnosis());
+                    }
+                    lastRssShield = rssShield;
+                    lastRssDiagnosis = rssShield.getUnsafeDiagnosis();
+                }
+
+                return new ShieldDecision(false, lastRssShield == null
+                        ? lastRssDiagnosis
+                        : lastRssShield.getUnsafeDiagnosis());
+            case EXPLORE_FUTURE_RSS_O_ACTION:
+                ExploreFutureRssOShield lastRssOShield = null;
+                String lastRssODiagnosis = "";
+                for(Action f:this.firstFallbackOrderedActionSet){
+                    List<Action> fallbackSequence = List.of(f);
+                    ExploreFutureRssOShield rssOShield = new ExploreFutureRssOShield(this.getEngine(), fallbackSequence);
+                    List<DisTLFormula> exploreFutureCriteria = List.of(rssOShield.evaluateCutIn());
+                    boolean rssOSafe = rssOShield.verifySafe(action, exploreFutureCriteria);
+                    if (shouldPrintDiagnostics()) {
+                        System.out.println("----------");
+                        System.out.printf("%s original rss explore future shield: ai_action=%s, fallback_sequence=%s%n",
+                                rssOSafe ? "Safe" : "Unsafe",
+                                action,
+                                fallbackSequence);
+                        System.out.println(rssOShield.getUnsafeDiagnosis());
+                    }
+                    if(rssOSafe){
+                        rebuildCachedActions(fallbackSequence);
+                        return new ShieldDecision(true, rssOShield.getUnsafeDiagnosis());
+                    }
+                    lastRssOShield = rssOShield;
+                    lastRssODiagnosis = rssOShield.getUnsafeDiagnosis();
+                }
+
+                return new ShieldDecision(false, lastRssOShield == null
+                        ? lastRssODiagnosis
+                        : lastRssOShield.getUnsafeDiagnosis());
             case EXPLORE_FUTURE_SMARTER_ACTION:
                 ExploreFutureActionSmarterShield lastSmarterShield = null;
                 String lastSmarterDiagnosis = "";

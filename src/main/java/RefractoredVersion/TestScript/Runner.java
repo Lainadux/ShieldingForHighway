@@ -539,7 +539,12 @@ public class Runner {
 
     private Path logDirectory(JavaMomentumConfig config) {
         return Path.of(config.getPATH_TO_SAVE())
-                .resolve(config.getEgoType().name() + "_" + config.getAiProfile().name() + "_LOGS");
+                .resolve(logDirectoryName(config));
+    }
+
+    private String logDirectoryName(JavaMomentumConfig config) {
+        String shieldType = config.getShieldType() == null ? "NO_SHIELD_TYPE" : config.getShieldType().name();
+        return config.getEgoType().name() + "_" + config.getAiProfile().name() + "_" + shieldType + "_LOGS";
     }
 
     private static class SimulationRunResult {
