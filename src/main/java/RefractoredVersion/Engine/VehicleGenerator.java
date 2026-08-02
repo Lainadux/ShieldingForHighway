@@ -122,7 +122,10 @@ public class VehicleGenerator {
             vehicle.x = "EGO".equals(vehicle.role)
                     ? minX
                     : nextPythonStyleNpcX(vehicles, rand, vehicle.speed);
-            vehicle.x = Math.min(maxX, Math.max(minX, vehicle.x));
+            if (vehicle.x > maxX) {
+                break;
+            }
+            vehicle.x = Math.max(minX, vehicle.x);
             vehicle.vx = vehicle.speed;
             vehicle.vy = 0.0;
             vehicle.targetSpeed = vehicle.speed;
@@ -206,7 +209,7 @@ public class VehicleGenerator {
 
     private static double nextPythonStyleNpcX(ArrayList<Vehicle> vehicles, Random rand, double speed) {
         double defaultSpacing = 12.0 + speed;
-        double offset = 1.5 * defaultSpacing * Math.exp(-5.0 / 40.0 * DEFAULT_NUM_LANES);
+        double offset = 1.0 * defaultSpacing * Math.exp(-5.0 / 40.0 * DEFAULT_NUM_LANES);
         double x0 = vehicles.isEmpty() ? 3.0 * offset : maxVehicleX(vehicles);
         return x0 + offset * (0.9 + 0.2 * rand.nextDouble());
     }

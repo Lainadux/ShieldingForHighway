@@ -38,7 +38,7 @@ public class TestScripts {
        config.setShieldType(ShieldType.EXPLORE_FUTURE_ACTION);
        config.setShieldType(ShieldType.EXPLORE_FUTURE_RSS_ACTION);
        config.setShieldType(ShieldType.EXPLORE_FUTURE_RSS_O_ACTION);
-      //config.setShieldType(ShieldType.EXPLORE_FUTURE_BETTER_REFERENCE_ACTION);
+      config.setShieldType(ShieldType.EXPLORE_FUTURE_BETTER_REFERENCE_ACTION);
        //config.setFutureActions(List.of());
 
 
@@ -74,8 +74,8 @@ public class TestScripts {
 
        config.setTestFunction(TestFunction.RECOVER);
        //config.setRecoverShieldTypeOverride(ShieldType.Ego);
-       //config.setTestFunction(TestFunction.GEN_LOGS);
-       String logsRoot = "C:\\MSCProject\\codes\\RefractoredVersionRepo\\src\\main\\java\\RefractoredVersion\\logs\\1785468762255\\ExploreFutureSlowerVehicle_adversarial_EXPLORE_FUTURE_RSS_O_ACTION_LOGS\\safe_20260731_053320_281_4.json";
+       config.setTestFunction(TestFunction.GEN_LOGS);
+       String logsRoot = "C:\\MSCProject\\codes\\RefractoredVersionRepo\\src\\main\\java\\RefractoredVersion\\logs\\1785690054608\\ExploreFutureSlowerVehicle_adversarial_EXPLORE_FUTURE_BETTER_REFERENCE_ACTION_LOGS\\safe_20260802_190119_238_0.json";
 
        config.setRecoverInitialStateFile(logsRoot);
 
