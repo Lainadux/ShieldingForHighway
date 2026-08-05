@@ -15,9 +15,12 @@ public final class RssSafetyModel {
     }
 
     public static double requiredLongitudinalGap(double rearSpeed, double frontSpeed) {
+        return requiredLongitudinalGap(rearSpeed, frontSpeed, NPC_RESPONSE_TIME);
+    }
+
+    public static double requiredLongitudinalGap(double rearSpeed, double frontSpeed, double rho) {
         double vRear = Math.max(MIN_SPEED, rearSpeed);
         double vFront = Math.max(MIN_SPEED, frontSpeed);
-        double rho = NPC_RESPONSE_TIME;
         double aMaxAccel = MAX_ACCELERATION;
         double aMinBrake = MIN_GUARANTEED_BRAKING_DECELERATION;
         double aMaxBrake = MAX_BRAKING_DECELERATION;

@@ -36,5 +36,7 @@ public enum EgoType {
     EgoRandomEnableShield,
     EgoRandomFallback,
     SlowerAndMinimalTrajectoryVehicle,
+    RssStrictEgoVehicle,
+    RssSoftEgoVehicle,
     ExploreFutureDelayedVehicle
 }

@@ -189,6 +189,12 @@ public class VehicleGenerator {
                 SlowerAndMinimalTrajectoryVehicle slowerAndMinimalTrajectoryVehicle =
                         new SlowerAndMinimalTrajectoryVehicle();
                 return configureEgoVehicle(slowerAndMinimalTrajectoryVehicle, javaMomentumConfig);
+            case RssStrictEgoVehicle:
+                RssStrictEgoVehicle rssStrictEgoVehicle = new RssStrictEgoVehicle();
+                return configureEgoVehicle(rssStrictEgoVehicle, javaMomentumConfig);
+            case RssSoftEgoVehicle:
+                RssSoftEgoVehicle rssSoftEgoVehicle = new RssSoftEgoVehicle();
+                return configureEgoVehicle(rssSoftEgoVehicle, javaMomentumConfig);
             case ExploreFutureDelayedVehicle:
                 ExploreFutureDelayedVehicle exploreFutureDelayedVehicle = new ExploreFutureDelayedVehicle();
                 return configureEgoVehicle(exploreFutureDelayedVehicle, javaMomentumConfig);

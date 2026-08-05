@@ -41,6 +41,8 @@ import RefractoredVersion.Engine.ExploreFutureWithIdleSlowerFallback;
 import RefractoredVersion.Engine.ExploreFutureWithoutCachingFallback;
 import RefractoredVersion.Engine.NoShieldEgo;
 import RefractoredVersion.Engine.RandomEgoVehicle;
+import RefractoredVersion.Engine.RssStrictEgoVehicle;
+import RefractoredVersion.Engine.RssSoftEgoVehicle;
 import RefractoredVersion.Engine.SlowerAndMinimalTrajectoryVehicle;
 import RefractoredVersion.Engine.Vehicle;
 import RefractoredVersion.Engine.VehicleGenerator;
@@ -356,6 +358,18 @@ public class Runner {
                         config.getAiProfile() == null ? AIProfile.base : config.getAiProfile();
                 slowerAndMinimalTrajectoryVehicle.aiProfile = slowerAndMinimalTrajectoryAiProfile;
                 return configureRecoveredEgoVehicle(slowerAndMinimalTrajectoryVehicle, config);
+            case RssStrictEgoVehicle:
+                RssStrictEgoVehicle rssStrictEgoVehicle = new RssStrictEgoVehicle();
+                AIProfile rssStrictAiProfile =
+                        config.getAiProfile() == null ? AIProfile.base : config.getAiProfile();
+                rssStrictEgoVehicle.aiProfile = rssStrictAiProfile;
+                return configureRecoveredEgoVehicle(rssStrictEgoVehicle, config);
+            case RssSoftEgoVehicle:
+                RssSoftEgoVehicle rssSoftEgoVehicle = new RssSoftEgoVehicle();
+                AIProfile rssSoftAiProfile =
+                        config.getAiProfile() == null ? AIProfile.base : config.getAiProfile();
+                rssSoftEgoVehicle.aiProfile = rssSoftAiProfile;
+                return configureRecoveredEgoVehicle(rssSoftEgoVehicle, config);
             case ExploreFutureDelayedVehicle:
                 ExploreFutureDelayedVehicle exploreFutureDelayedVehicle = new ExploreFutureDelayedVehicle();
                 AIProfile exploreFutureDelayedAiProfile = config.getAiProfile() == null ? AIProfile.base : config.getAiProfile();
