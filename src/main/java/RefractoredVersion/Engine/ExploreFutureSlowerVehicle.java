@@ -6,6 +6,7 @@ import RefractoredVersion.Shield.ExploreFutureActionSmarterShield;
 import RefractoredVersion.Shield.ExploreFutureBetterReferenceShield;
 import RefractoredVersion.Shield.ExploreFutureRssOShield;
 import RefractoredVersion.Shield.ExploreFutureRssShield;
+import RefractoredVersion.Shield.StarkNativeShield;
 import RefractoredVersion.TestScript.Config.JavaMomentumConfig;
 import RefractoredVersion.TestScript.Config.ShieldType;
 
@@ -93,6 +94,22 @@ public class ExploreFutureSlowerVehicle extends ExploreFutureEgo{
                     return shieldDecisionFrom(true, rssOShield);
                 }
                 return shieldDecisionFrom(false, rssOShield);
+            case STARK_NATIVE:
+                StarkNativeShield starkNativeShield = new StarkNativeShield(this.getEngine());
+                boolean starkNativeSafe = starkNativeShield.verifySafe(action);
+                if (shouldPrintDiagnostics()) {
+                    System.out.println("----------");
+                    System.out.printf("%s stark native shield: ai_action=%s, fallback_sequence=%s%n",
+                            starkNativeSafe ? "Safe" : "Unsafe",
+                            action,
+                            SLOWER_SLOWER_SEQUENCE);
+                    System.out.println(starkNativeShield.getUnsafeDiagnosis());
+                }
+                if(starkNativeSafe){
+                    rebuildCachedActions(SLOWER_SLOWER_SEQUENCE);
+                    return shieldDecisionFrom(true, starkNativeShield);
+                }
+                return shieldDecisionFrom(false, starkNativeShield);
             case EXPLORE_FUTURE_SMARTER_ACTION:
                 ExploreFutureActionSmarterShield smarterShield =
                         new ExploreFutureActionSmarterShield(this.getEngine(), SLOWER_SLOWER_SEQUENCE);

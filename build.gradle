@@ -24,6 +24,13 @@ application {
     mainClass = 'RefractoredVersion.TestScript.TestScripts'
 }
 
+tasks.register('testNativeShield', JavaExec) {
+    group = 'application'
+    description = 'Run one simulation with TestNativeShield.'
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'RefractoredVersion.TestScript.TestNativeShield'
+}
+
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
 }

@@ -107,7 +107,7 @@ public class Vehicle {
         double deltaF = this.plannedSteering;
         //beta = arctan(1 / 2 * np.tan(delta_f))
         double beta  = Math.atan((double) 1 / 2 * Math.tan(deltaF));
-        this.speed += this.plannedAcceleration * engine.getDt();
+
         this.speed = Math.max(0.0, this.speed);
         this.vx = this.speed * Math.cos(this.heading + beta);
         this.vy = this.speed * Math.sin(this.heading + beta);
@@ -117,6 +117,10 @@ public class Vehicle {
         this.heading += this.speed * Math.sin(beta) / (this.LENGTH / 2) * engine.getDt();
         this.setLaneIndex(Math.max(0, Math.min(engine.numLanes - 1, (int) Math.round(this.y / 4.0))));
         this.cooldownTimer += engine.getDt();
+        this.speed += this.plannedAcceleration * engine.getDt();
+        this.speed = Math.max(0.0, this.speed);
+        this.vx = this.speed * Math.cos(this.heading);
+        this.vy = this.speed * Math.sin(this.heading);
     }
     public double laneDistanceTo(Vehicle other) {
         if (other == null) return 0.0;

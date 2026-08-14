@@ -28,6 +28,7 @@ import RefractoredVersion.Shield.ExploreFutureActionSmarterShield;
 import RefractoredVersion.Shield.ExploreFutureBetterReferenceShield;
 import RefractoredVersion.Shield.ExploreFutureRssOShield;
 import RefractoredVersion.Shield.ExploreFutureRssShield;
+import RefractoredVersion.Shield.StarkNativeShield;
 import RefractoredVersion.TestScript.Config.JavaMomentumConfig;
 import RefractoredVersion.TestScript.Config.ShieldType;
 
@@ -233,6 +234,10 @@ public class EgoVehicle extends Vehicle implements NonNpcVehicle, NotControlledB
                         new ExploreFutureRssOShield(this.getEngine(), rssOFutureActions);
                 boolean rssOSafe = rssOShield.verifySafe(action);
                 return new ShieldDecision(rssOSafe, rssOShield.getUnsafeDiagnosis());
+            case STARK_NATIVE:
+                StarkNativeShield starkNativeShield = new StarkNativeShield(this.getEngine());
+                boolean starkNativeSafe = starkNativeShield.verifySafe(action);
+                return shieldDecisionFrom(starkNativeSafe, starkNativeShield);
             case EXPLORE_FUTURE_SMARTER_ACTION:
                 ArrayList<Action> smarterFutureActions = config == null || config.getFutureActions() == null
                         ? new ArrayList<>()

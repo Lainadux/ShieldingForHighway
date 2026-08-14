@@ -255,37 +255,38 @@ if __name__ == '__main__':
 
         print("\rCrashes:", crashes, "/", test_runs, "runs", f"({crashes/test_runs*100:0.1f} %)")
         env.close()
-    elif sys.argv[1] == 'config':
-        vehicle = env.unwrapped.vehicle
-        print(f"🏎️ Vehicle Dynamics Parameters:")
-        print(f"   - Kp (Gain): {getattr(vehicle, 'KP_A', 'Not found')}")
-        print(f"   - Max Acceleration: {getattr(vehicle, 'ACC_MAX', 'Not found')} m/s²")
-        print(f"   - Comfort Acceleration: {getattr(vehicle, 'COMFORT_ACC_MAX', 'Not found')} m/s²")
-        print(f"   - Max Deceleration: {getattr(vehicle, 'COMFORT_ACC_MIN', 'Not found')} m/s²")
-        print("\n" + "=" * 30)
-        print("🔍 揭秘环境内部真实参数")
-        print("=" * 30)
 
-        # 1. 证据一：打印 Observation Space 的形状
-        # 如果输出是 (5, 5)，说明神经网络输入层只留了 5 个位置
-        print(f"1. [最强铁证] 神经网络输入形状 (Observation Space):")
-        print(f"   👉 {env.observation_space.shape}")
-        print(f"      (解读: 第一个数字 '{env.observation_space.shape[0]}' 就是感知车辆数)")
-
-        # 2. 证据二：打印 Observation 模块的完整配置
-        # 这里会显示 merge 之后的最终字典（包含你没写但默认生效的参数）
-        print(f"\n2. [配置实录] env.config['observation'] 最终值:")
-        import pprint
-
-        # 获取底层环境配置（防止被 Wrapper 遮挡）
-        real_config = env.unwrapped.config
-        pprint.pprint(real_config['observation'])
-
-        # 3. 证据三：对比两个 vehicles_count
-        print(f"\n3. [关键对比] 物理 vs 感知:")
-        print(f"   🚗 物理生成数量 (env.config['vehicles_count']): {real_config.get('vehicles_count', '默认值')}")
-        print(
-            f"   👀 神经感知数量 (env.config['observation']['vehicles_count']): {real_config['observation'].get('vehicles_count', '默认值')}")
+#     elif sys.argv[1] == 'config':
+#         vehicle = env.unwrapped.vehicle
+#         print(f"🏎️ Vehicle Dynamics Parameters:")
+#         print(f"   - Kp (Gain): {getattr(vehicle, 'KP_A', 'Not found')}")
+#         print(f"   - Max Acceleration: {getattr(vehicle, 'ACC_MAX', 'Not found')} m/s²")
+#         print(f"   - Comfort Acceleration: {getattr(vehicle, 'COMFORT_ACC_MAX', 'Not found')} m/s²")
+#         print(f"   - Max Deceleration: {getattr(vehicle, 'COMFORT_ACC_MIN', 'Not found')} m/s²")
+#         print("\n" + "=" * 30)
+#         print("🔍 揭秘环境内部真实参数")
+#         print("=" * 30)
+#
+#         # 1. 证据一：打印 Observation Space 的形状
+#         # 如果输出是 (5, 5)，说明神经网络输入层只留了 5 个位置
+#         print(f"1. [最强铁证] 神经网络输入形状 (Observation Space):")
+#         print(f"   👉 {env.observation_space.shape}")
+#         print(f"      (解读: 第一个数字 '{env.observation_space.shape[0]}' 就是感知车辆数)")
+#
+#         # 2. 证据二：打印 Observation 模块的完整配置
+#         # 这里会显示 merge 之后的最终字典（包含你没写但默认生效的参数）
+#         print(f"\n2. [配置实录] env.config['observation'] 最终值:")
+#         import pprint
+#
+#         # 获取底层环境配置（防止被 Wrapper 遮挡）
+#         real_config = env.unwrapped.config
+#         pprint.pprint(real_config['observation'])
+#
+#         # 3. 证据三：对比两个 vehicles_count
+#         print(f"\n3. [关键对比] 物理 vs 感知:")
+#         print(f"   🚗 物理生成数量 (env.config['vehicles_count']): {real_config.get('vehicles_count', '默认值')}")
+#         print(
+#             f"   👀 神经感知数量 (env.config['observation']['vehicles_count']): {real_config['observation'].get('vehicles_count', '默认值')}")
 
 
 
