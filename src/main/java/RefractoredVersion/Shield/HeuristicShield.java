@@ -37,6 +37,9 @@ public class HeuristicShield {
     protected double lastRobustness = Double.NaN;
     protected double lastMinTtc = Double.NaN;
     protected String lastDiagnosis = "";
+    private double vehicleLength = 5.0;
+    private int numLanes = 3;
+    private int laneWidth = 4;
 
     public boolean verifySafe() {
         if (candidateAction == null) {
@@ -131,9 +134,10 @@ public class HeuristicShield {
                         self
                 )
         );
-
         return self;
     }
+
+
     private List<DataStateUpdate> getControllerUpdates(RandomGenerator rg, DataState state) {
         List<DataStateUpdate> updates = new ArrayList<>();
 
@@ -538,31 +542,25 @@ public class HeuristicShield {
 
         for (int i = 0; i < vehicleCount(); i++) {
             int offset = vehicleOffset(i);
-
             double x = value(state, i, VarTable.x);
             double y = value(state, i, VarTable.y);
             double speed = Math.max(0.0, value(state, i, VarTable.speed));
             double heading = value(state, i, VarTable.heading);
             double plannedAcceleration = value(state, i, VarTable.plannedAcceleration);
             double cooldownTimer = value(state, i, VarTable.cooldownTimer);
-
             double steering = computeSteeringFromState(state, i);
             double beta = Math.atan(0.5 * Math.tan(steering));
-
             double vxBeforeSpeedUpdate = speed * Math.cos(heading + beta);
             double vyBeforeSpeedUpdate = speed * Math.sin(heading + beta);
-
             double newX = x + vxBeforeSpeedUpdate * dt;
             double newY = y + vyBeforeSpeedUpdate * dt;
-            double newHeading = heading + speed * Math.sin(beta) / (5.0 / 2.0) * dt;
+            double newHeading = heading + speed * Math.sin(beta) / (vehicleLength / 2.0) * dt;
 
             int newLaneIndex = Math.max(
                     0,
-                    Math.min(3 - 1, (int) Math.round(newY / 4.0))
+                    Math.min(numLanes - 1, (int) Math.round(newY / laneWidth))
             );
-
             double newCooldownTimer = cooldownTimer + dt;
-
             double newSpeed = Math.max(0.0, speed + plannedAcceleration * dt);
             double newVx = newSpeed * Math.cos(newHeading);
             double newVy = newSpeed * Math.sin(newHeading);
@@ -577,7 +575,6 @@ public class HeuristicShield {
             updates.add(new DataStateUpdate(offset + VarTable.vx.ordinal(), newVx));
             updates.add(new DataStateUpdate(offset + VarTable.vy.ordinal(), newVy));
         }
-
         DataState updatedStateWithoutTtc = state.apply(updates);
         updates.add(new DataStateUpdate(
                 minTtcIndex(),

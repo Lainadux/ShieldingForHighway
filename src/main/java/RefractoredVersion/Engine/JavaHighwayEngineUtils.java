@@ -29,7 +29,7 @@ import java.util.Map;
 
 public class JavaHighwayEngineUtils {
     private static final double EGO_COMFORT_BRAKE_FOR_LANE_CHANGE = 2.0;
-    private static final double DELTA = 4.0;
+    protected static final double DELTA = 4.0;
     private static final double TAU_ACC = 0.6;
     private static final double TAU_HEADING=0.2;
     private static final double TAU_LATERAL = 0.6;
@@ -39,11 +39,11 @@ public class JavaHighwayEngineUtils {
     private static final double KP_HEADING = 1 / TAU_HEADING;
     private static final double KP_LATERAL = 1 / TAU_LATERAL;
     public static final double COMFORT_ACC_MAX = 3.0;
-    private static final double DISTANCE_WANTED = 10;
+    protected static final double DISTANCE_WANTED = 10;
     public static final double DEFAULT_TIME_WANTED = 1.5;
     public static final double COMFORT_ACC_MIN = -5.0;
     private static final double LANE_CHANGE_MIN_ACC_GAIN = 0.2;
-    private static final double LANE_CHANGE_MAX_BRAKING_IMPOSED = 2.0;
+    protected static final double LANE_CHANGE_MAX_BRAKING_IMPOSED = 2.0;
 
     private static final double EGO_REAR_BRAKING_GAP_BUFFER = 2.0;
 
@@ -64,6 +64,8 @@ public class JavaHighwayEngineUtils {
 
 
     }
+
+
     private static double longitudinalSpeed(Vehicle vehicle) {
         return vehicle.vx != 0.0 ? vehicle.vx : vehicle.speed;
     }
@@ -183,10 +185,15 @@ public class JavaHighwayEngineUtils {
 
                         // the computation of overall_benefit differs in different sources
 
-                        double overall_benefit = (new_a - current_a) + vehicle.politeness * (benefit + karma);
+                        double overall_benefit =
+                                (new_a - current_a) + vehicle.politeness * (benefit + karma);
 
+                        boolean safeConsideringRearVehicle =
+                                engine instanceof GentleNpcHighwayEngine
+                                        ? isSafeConsideringRearVehicleGentle(vehicle, karma_car_behind)
+                                        : isSafeConsideringRearVehicle(vehicle, karma_car_behind, karma_a_new, new_a);
 
-                        if(overall_benefit > LANE_CHANGE_MIN_ACC_GAIN && isSafeConsideringRearVehicle(vehicle, karma_car_behind, karma_a_new, new_a)){
+                        if (overall_benefit > LANE_CHANGE_MIN_ACC_GAIN && safeConsideringRearVehicle) {
                             newLane.add(lane);
                         }
 
@@ -446,5 +453,40 @@ public class JavaHighwayEngineUtils {
         }
         return true;
     }
+    public static boolean isSafeConsideringRearVehicleGentle(
+            Vehicle laneChangingVehicle,
+            Vehicle rearVehicle
+    ) throws Exception {
+        if (rearVehicle == null) {
+            return true;
+        }
+
+        double rearPredictedAcceleration =
+                computeIdmReasoningAcceleration(rearVehicle, laneChangingVehicle);
+
+        return rearPredictedAcceleration > -LANE_CHANGE_MAX_BRAKING_IMPOSED;
+    }
+    private static double computeIdmReasoningAcceleration(Vehicle vehicle, Vehicle frontVehicle) {
+        double v = longitudinalSpeed(vehicle);
+        double v0 = not_zero(vehicle.targetSpeed);
+        double freeFlowTerm = 1 - Math.pow(v / v0, DELTA);
+
+        if (frontVehicle == null) {
+            return COMFORT_ACC_MAX * freeFlowTerm;
+        } else {
+            double dv = v - longitudinalSpeed(frontVehicle);
+            double s = frontVehicle.x - vehicle.x - vehicle.LENGTH;
+            s = Math.max(s, 0.01);
+            double sStar = DISTANCE_WANTED + v * DEFAULT_TIME_WANTED +
+                    (v * dv) / (2 * Math.sqrt(COMFORT_ACC_MAX * Math.abs(COMFORT_ACC_MIN)));
+            sStar = Math.max(sStar, DISTANCE_WANTED);
+            double interactionTerm = Math.pow(sStar / s, 2);
+            double acceleration = COMFORT_ACC_MAX * (freeFlowTerm - interactionTerm);
+            return acceleration;
+
+
+        }
+    }
+
 
 }

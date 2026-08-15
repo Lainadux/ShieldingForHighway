@@ -1,16 +1,15 @@
 package RefractoredVersion.TestScript;
 
 import RefractoredVersion.Engine.AIProfile;
-import RefractoredVersion.TestScript.Config.EgoType;
-import RefractoredVersion.TestScript.Config.JavaMomentumConfig;
-import RefractoredVersion.TestScript.Config.ShieldType;
-import RefractoredVersion.TestScript.Config.TestFunction;
+import RefractoredVersion.TestScript.Config.*;
 
 public class TestNativeShield {
     public static void main(String[] args) throws Exception {
         JavaMomentumConfig config = new JavaMomentumConfig();
-        config.setTestFunction(TestFunction.QUICK_TEST);
-        config.setEgoType(EgoType.ExploreFutureSlowerVehicle);
+        config.setTestFunction(TestFunction.GEN_LOGS);
+        config.setRealWorldEngineType(RealWorldEngineType.BRUTAL);
+        config.setNumsOfSimulations(100);
+        config.setEgoType(EgoType.ExploreFutureEgo);
         config.setShieldType(ShieldType.STARK_NATIVE);
         config.setAiProfile(AIProfile.adversarial);
 

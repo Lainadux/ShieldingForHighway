@@ -39,6 +39,7 @@ import RefractoredVersion.Engine.ExploreFutureEgo;
 import RefractoredVersion.Engine.ExploreFutureSlowerVehicle;
 import RefractoredVersion.Engine.ExploreFutureWithIdleSlowerFallback;
 import RefractoredVersion.Engine.ExploreFutureWithoutCachingFallback;
+import RefractoredVersion.Engine.GentleNpcHighwayEngine;
 import RefractoredVersion.Engine.NoShieldEgo;
 import RefractoredVersion.Engine.RandomEgoVehicle;
 import RefractoredVersion.Engine.RssStrictEgoVehicle;
@@ -50,6 +51,7 @@ import RefractoredVersion.TestScript.Config.Config;
 import RefractoredVersion.TestScript.Config.EgoType;
 import RefractoredVersion.TestScript.Config.FallBackMode;
 import RefractoredVersion.TestScript.Config.JavaMomentumConfig;
+import RefractoredVersion.TestScript.Config.RealWorldEngineType;
 import RefractoredVersion.TestScript.Config.SandboxNpcPolitenessMode;
 import RefractoredVersion.TestScript.Config.ShieldType;
 import RefractoredVersion.TestScript.Config.TestFunction;
@@ -180,7 +182,7 @@ public class Runner {
         }
         validateShieldConfig(javaMomentumConfig);
 
-        JavaHighwayEngine realWorld = new JavaHighwayEngine();
+        JavaHighwayEngine realWorld = createRealWorldEngine(javaMomentumConfig);
         realWorld.setRenderEnabled(true);
         realWorld.setFrequency(javaMomentumConfig.getFrequency());
         realWorld.config = javaMomentumConfig;
@@ -201,7 +203,7 @@ public class Runner {
     private SimulationRunResult singleRun(JavaMomentumConfig javaMomentumConfig, boolean rendered,
                                           boolean captureRuntimeCrash) throws Exception {
         if(config instanceof JavaMomentumConfig){
-            JavaHighwayEngine realWorld = new JavaHighwayEngine();
+            JavaHighwayEngine realWorld = createRealWorldEngine(javaMomentumConfig);
             realWorld.setRenderEnabled(rendered);
             realWorld.setFrequency(javaMomentumConfig.getFrequency());
             realWorld.config = javaMomentumConfig;
@@ -269,6 +271,16 @@ public class Runner {
             }
         }
         return null;
+    }
+
+    private JavaHighwayEngine createRealWorldEngine(JavaMomentumConfig config) {
+        RealWorldEngineType engineType = config.getRealWorldEngineType() == null
+                ? RealWorldEngineType.BRUTAL
+                : config.getRealWorldEngineType();
+        return switch (engineType) {
+            case BRUTAL -> new JavaHighwayEngine();
+            case GENTLE -> new GentleNpcHighwayEngine();
+        };
     }
 
     private void validateShieldConfig(JavaMomentumConfig config) {
@@ -519,7 +531,7 @@ public class Runner {
             }
             metadata.applyTo(config);
             System.out.printf(
-                    "Recovered config: egoType=%s aiProfile=%s frequency=%d duration=%d predictionTime=%d maxTargetSpeed=%.2f fixPrediction=%s fixedPredictionTargetSpeedDelta=%.2f aggressiveV3TtcThreshold=%.2f shieldType=%s delayedActionStep=%d sensorRange=%d noisySensorOuterRange=%d randomEnableShieldPercent=%d randomizeNpcPoliteness=%s sandboxNpcPolitenessMode=%s futureActions=%s%n",
+                    "Recovered config: egoType=%s aiProfile=%s frequency=%d duration=%d predictionTime=%d maxTargetSpeed=%.2f fixPrediction=%s fixedPredictionTargetSpeedDelta=%.2f aggressiveV3TtcThreshold=%.2f shieldType=%s realWorldEngineType=%s delayedActionStep=%d sensorRange=%d noisySensorOuterRange=%d randomEnableShieldPercent=%d randomizeNpcPoliteness=%s sandboxNpcPolitenessMode=%s futureActions=%s%n",
                     config.getEgoType(),
                     config.getAiProfile(),
                     config.getFrequency(),
@@ -530,6 +542,7 @@ public class Runner {
                     config.getFixedPredictionTargetSpeedDelta(),
                     config.getAggressiveV3TtcThreshold(),
                     config.getShieldType(),
+                    config.getRealWorldEngineType(),
                     config.getDelayedActionStep(),
                     config.getSensorRange(),
                     config.getNoisySensorOuterRange(),
@@ -794,6 +807,7 @@ public class Runner {
         private Double fixedPredictionTargetSpeedDelta;
         private Double aggressiveV3TtcThreshold;
         private String shieldType;
+        private String realWorldEngineType;
         private Integer delayedActionStep;
         private Integer sensorRange;
         private Integer noisySensorOuterRange;
@@ -815,6 +829,9 @@ public class Runner {
             this.fixedPredictionTargetSpeedDelta = config.getFixedPredictionTargetSpeedDelta();
             this.aggressiveV3TtcThreshold = config.getAggressiveV3TtcThreshold();
             this.shieldType = config.getShieldType() == null ? null : config.getShieldType().name();
+            this.realWorldEngineType = config.getRealWorldEngineType() == null
+                    ? null
+                    : config.getRealWorldEngineType().name();
             this.delayedActionStep = config.getDelayedActionStep();
             this.sensorRange = config.getSensorRange();
             this.noisySensorOuterRange = config.getNoisySensorOuterRange();
@@ -860,6 +877,9 @@ public class Runner {
             }
             if (shieldType != null && !shieldType.isBlank()) {
                 config.setShieldType(ShieldType.valueOf(shieldType));
+            }
+            if (realWorldEngineType != null && !realWorldEngineType.isBlank()) {
+                config.setRealWorldEngineType(RealWorldEngineType.valueOf(realWorldEngineType));
             }
             if (delayedActionStep != null) {
                 config.setDelayedActionStep(delayedActionStep);

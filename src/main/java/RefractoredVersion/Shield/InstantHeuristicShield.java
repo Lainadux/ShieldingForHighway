@@ -49,7 +49,7 @@ public class InstantHeuristicShield extends HeuristicShield {
     }
     @Override
     protected double minTtcThreshold() {
-        return 8.0;
+        return 10.0;
     }
 
 }

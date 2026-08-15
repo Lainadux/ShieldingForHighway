@@ -1,22 +1,21 @@
 package RefractoredVersion.TestScript;
 
 import RefractoredVersion.Engine.AIProfile;
-import RefractoredVersion.TestScript.Config.EgoType;
-import RefractoredVersion.TestScript.Config.JavaMomentumConfig;
-import RefractoredVersion.TestScript.Config.ShieldType;
-import RefractoredVersion.TestScript.Config.TestFunction;
+import RefractoredVersion.TestScript.Config.*;
 
 public class TestHeuristicShield {
     public static void main(String[] args) throws Exception {
         JavaMomentumConfig config = new JavaMomentumConfig();
         config.setTestFunction(TestFunction.QUICK_TEST);
-        config.setPATH_TO_SAVE("src/main/java/RefractoredVersion/logs/InstantHeuristicSHield" + System.currentTimeMillis() + "/");
+        config.setRealWorldEngineType(RealWorldEngineType.BRUTAL);
+        config.setPATH_TO_SAVE("src/main/java/RefractoredVersion/logs/Heursitic200Brutal" + System.currentTimeMillis() + "/");
         config.setEgoType(EgoType.EgoVehicle);
-        config.setShieldType(ShieldType.INSTANT_HEURISTIC);
+        config.setShieldType(ShieldType.HEURISTIC);
 
         config.setTestFunction(TestFunction.GEN_LOGS);
+
         config.setAiProfile(AIProfile.adversarial);
-        config.setNumsOfSimulations(50);
+        config.setNumsOfSimulations(200);
         config.setMinX(0);
         config.setMaxX(400);
         config.setDuration(30);

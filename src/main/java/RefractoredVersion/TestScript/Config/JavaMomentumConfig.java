@@ -53,6 +53,7 @@ public class JavaMomentumConfig extends Config {
     private int randomEnableShieldPercent = 20;
     private boolean randomizeNpcPoliteness = false;
     private SandboxNpcPolitenessMode sandboxNpcPolitenessMode = SandboxNpcPolitenessMode.COPY_REAL;
+    private RealWorldEngineType realWorldEngineType = RealWorldEngineType.BRUTAL;
     @Deprecated
     private List<Action> futureActions = new ArrayList<>();
     @Deprecated
@@ -145,6 +146,13 @@ public class JavaMomentumConfig extends Config {
             throw new IllegalArgumentException("sandboxNpcPolitenessMode cannot be null.");
         }
         this.sandboxNpcPolitenessMode = sandboxNpcPolitenessMode;
+    }
+
+    public void setRealWorldEngineType(RealWorldEngineType realWorldEngineType) {
+        if (realWorldEngineType == null) {
+            throw new IllegalArgumentException("realWorldEngineType cannot be null.");
+        }
+        this.realWorldEngineType = realWorldEngineType;
     }
 
 }

@@ -6,6 +6,7 @@ import RefractoredVersion.Shield.ExploreFutureActionSmarterShield;
 import RefractoredVersion.Shield.ExploreFutureBetterReferenceShield;
 import RefractoredVersion.Shield.ExploreFutureRssOShield;
 import RefractoredVersion.Shield.ExploreFutureRssShield;
+import RefractoredVersion.Shield.StarkNativeExploreFutureShield;
 import RefractoredVersion.TestScript.Config.JavaMomentumConfig;
 import RefractoredVersion.TestScript.Config.ShieldType;
 import it.unicam.quasylab.jspear.distl.DisTLFormula;
@@ -210,6 +211,34 @@ public class ExploreFutureEgo extends EgoVehicle {
                 return new ShieldDecision(false, lastSmarterShield == null
                         ? lastSmarterDiagnosis
                         : lastSmarterShield.getUnsafeDiagnosis());
+            case STARK_NATIVE:
+                StarkNativeExploreFutureShield lastNativeShield = null;
+                String lastNativeDiagnosis = "";
+                for(Action f:this.firstFallbackOrderedActionSet){
+                    List<Action> fallbackSequence = List.of(f);
+                    StarkNativeExploreFutureShield nativeShield =
+                            new StarkNativeExploreFutureShield(this.getEngine(), fallbackSequence);
+                    List<DisTLFormula> exploreFutureCriteria = List.of(nativeShield.evaluateCutIn());
+                    boolean nativeSafe = nativeShield.verifySafe(action, exploreFutureCriteria);
+                    if (shouldPrintDiagnostics()) {
+                        System.out.println("----------");
+                        System.out.printf("%s stark native explore future shield: ai_action=%s, fallback_sequence=%s%n",
+                                nativeSafe ? "Safe" : "Unsafe",
+                                action,
+                                fallbackSequence);
+                        System.out.println(nativeShield.getUnsafeDiagnosis());
+                    }
+                    if(nativeSafe){
+                        rebuildCachedActions(fallbackSequence);
+                        return shieldDecisionFrom(true, nativeShield);
+                    }
+                    lastNativeShield = nativeShield;
+                    lastNativeDiagnosis = nativeShield.getUnsafeDiagnosis();
+                }
+
+                return new ShieldDecision(false, lastNativeShield == null
+                        ? lastNativeDiagnosis
+                        : lastNativeShield.getUnsafeDiagnosis());
             default:
                 throw new IllegalArgumentException("Unsupported shield type: " + shieldType);
         }

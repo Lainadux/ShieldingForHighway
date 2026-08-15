@@ -7,12 +7,14 @@ import RefractoredVersion.Engine.BeforeCrashActionLog;
 import RefractoredVersion.Engine.CollisionLog;
 import RefractoredVersion.Engine.EgoVehicle;
 import RefractoredVersion.Engine.ExploreFutureSlowerVehicle;
+import RefractoredVersion.Engine.GentleNpcHighwayEngine;
 import RefractoredVersion.Engine.JavaHighwayAiClient;
 import RefractoredVersion.Engine.JavaHighwayEngine;
 import RefractoredVersion.Engine.Vehicle;
 import RefractoredVersion.Engine.VehicleGenerator;
 import RefractoredVersion.TestScript.Config.EgoType;
 import RefractoredVersion.TestScript.Config.JavaMomentumConfig;
+import RefractoredVersion.TestScript.Config.RealWorldEngineType;
 import RefractoredVersion.TestScript.Config.SandboxNpcPolitenessMode;
 import RefractoredVersion.TestScript.Config.ShieldType;
 import RefractoredVersion.TestScript.Records.EpisodeAcceptanceSequence;
@@ -121,7 +123,7 @@ public class ThresholdAcceptanceSequenceExperiment {
     }
 
     private static SimulationResult runSimulation(JavaMomentumConfig config, String initialStateJson) {
-        JavaHighwayEngine engine = new JavaHighwayEngine();
+        JavaHighwayEngine engine = createRealWorldEngine(config);
         engine.setRenderEnabled(false);
         engine.setFrequency(config.getFrequency());
         engine.config = config;
@@ -140,6 +142,16 @@ public class ThresholdAcceptanceSequenceExperiment {
         } catch (Exception e) {
             throw new RuntimeException("Simulation failed unexpectedly.", e);
         }
+    }
+
+    private static JavaHighwayEngine createRealWorldEngine(JavaMomentumConfig config) {
+        RealWorldEngineType engineType = config.getRealWorldEngineType() == null
+                ? RealWorldEngineType.BRUTAL
+                : config.getRealWorldEngineType();
+        return switch (engineType) {
+            case BRUTAL -> new JavaHighwayEngine();
+            case GENTLE -> new GentleNpcHighwayEngine();
+        };
     }
 
     private static List<Vehicle> restoreVehicles(String initialStateJson, JavaMomentumConfig config) {
@@ -474,6 +486,7 @@ public class ThresholdAcceptanceSequenceExperiment {
         private final double fixedPredictionTargetSpeedDelta;
         private final double aggressiveV3TtcThreshold;
         private final String shieldType;
+        private final String realWorldEngineType;
         private final int delayedActionStep;
         private final int sensorRange;
         private final int noisySensorOuterRange;
@@ -495,6 +508,7 @@ public class ThresholdAcceptanceSequenceExperiment {
             this.fixedPredictionTargetSpeedDelta = config.getFixedPredictionTargetSpeedDelta();
             this.aggressiveV3TtcThreshold = config.getAggressiveV3TtcThreshold();
             this.shieldType = config.getShieldType().name();
+            this.realWorldEngineType = config.getRealWorldEngineType().name();
             this.delayedActionStep = config.getDelayedActionStep();
             this.sensorRange = config.getSensorRange();
             this.noisySensorOuterRange = config.getNoisySensorOuterRange();

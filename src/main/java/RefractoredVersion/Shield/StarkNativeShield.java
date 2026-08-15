@@ -35,9 +35,18 @@ public class StarkNativeShield extends ExploreFutureBetterReferenceShield {
     private static final List<Action> AI_SLOWER_SLOWER = List.of(Action.SLOWER, Action.SLOWER);
     private static final double TARGET_SPEED_SAMPLE_DELTA = 1.0;
     private static final double ACTION_SPEED_DELTA = 5.0;
+    protected final List<Action> futureActions;
 
     public StarkNativeShield(JavaHighwayEngine sourceEngine) {
-        super(sourceEngine, AI_SLOWER_SLOWER);
+        this(sourceEngine, AI_SLOWER_SLOWER);
+    }
+
+    protected StarkNativeShield(JavaHighwayEngine sourceEngine, List<Action> futureActions) {
+        super(sourceEngine, futureActions);
+        if (futureActions == null) {
+            throw new IllegalArgumentException("futureActions cannot be null.");
+        }
+        this.futureActions = List.copyOf(futureActions);
     }
 
     public StarkNativeShield(JavaHighwayEngine sourceEngine, EgoVehicle egoVehicle, JavaMomentumConfig config) {
@@ -47,23 +56,22 @@ public class StarkNativeShield extends ExploreFutureBetterReferenceShield {
     @Override
     public boolean verifySafe(Action candidateAction) throws Exception {
         Objects.requireNonNull(candidateAction, "candidateAction must not be null");
-        return verifySafeSequence(List.of(candidateAction, Action.SLOWER, Action.SLOWER));
+        return verifySafeSequence(actionSequence(candidateAction));
     }
 
     @Override
     public boolean verifySafe(Action candidateAction, List<DisTLFormula> moreCriteria) throws Exception {
         Objects.requireNonNull(candidateAction, "candidateAction must not be null");
-        return verifySafeSequence(List.of(candidateAction, Action.SLOWER, Action.SLOWER), moreCriteria);
+        return verifySafeSequence(actionSequence(candidateAction), moreCriteria);
     }
 
     @Override
     public EvolutionSequence getPredictionSequence(Action candidateAction) throws Exception {
         Objects.requireNonNull(candidateAction, "candidateAction must not be null");
-        List<Action> actionSequence = List.of(candidateAction, Action.SLOWER, Action.SLOWER);
+        List<Action> actionSequence = actionSequence(candidateAction);
         validateActionSequence(actionSequence);
         createSandboxEngine(actionSequence);
         sequence = getNativePredictionSequence(actionSequence);
-        sequence.generateUpTo(lastNativePredictionStep(actionSequence));
         return sequence;
     }
 
@@ -139,20 +147,29 @@ public class StarkNativeShield extends ExploreFutureBetterReferenceShield {
         return lastShieldRobustness >= MIN_ACCEPTABLE_ROBUSTNESS;
     }
 
-    private void validateActionSequence(List<Action> actionSequence) {
-        if (actionSequence == null || actionSequence.size() != 3
-                || actionSequence.get(0) == null
-                || actionSequence.get(1) != Action.SLOWER
-                || actionSequence.get(2) != Action.SLOWER) {
-            throw new IllegalArgumentException("StarkNativeShield only supports [AI, SLOWER, SLOWER].");
+    protected List<Action> actionSequence(Action candidateAction) {
+        List<Action> actions = new ArrayList<>();
+        actions.add(candidateAction);
+        actions.addAll(futureActions);
+        return actions;
+    }
+
+    protected void validateActionSequence(List<Action> actionSequence) {
+        if (actionSequence == null || actionSequence.isEmpty() || actionSequence.get(0) == null) {
+            throw new IllegalArgumentException("StarkNativeShield requires a non-empty action sequence.");
+        }
+        for (Action action : actionSequence) {
+            if (action == null) {
+                throw new IllegalArgumentException("StarkNativeShield action sequence cannot contain null actions.");
+            }
         }
     }
 
-    private int lastNativePredictionStep(List<Action> actionSequence) {
+    protected int lastNativePredictionStep(List<Action> actionSequence) {
         return Math.max(0, actionSequence.size() * sourceEngine.getFrequency() - 1);
     }
 
-    private EvolutionSequence getNativePredictionSequence(List<Action> actionSequence) {
+    protected EvolutionSequence getNativePredictionSequence(List<Action> actionSequence) {
         DefaultRandomGenerator random = new DefaultRandomGenerator();
         return new EvolutionSequence(
                 random,
@@ -169,7 +186,7 @@ public class StarkNativeShield extends ExploreFutureBetterReferenceShield {
         );
     }
 
-    private Controller getController(List<Action> actionSequence) {
+    protected Controller getController(List<Action> actionSequence) {
         ControllerRegistry registry = new ControllerRegistry();
         registry.set(CONTROLLER_NAME,
                 Controller.doAction((rg, ds) -> getControllerUpdates(rg, ds, actionSequence),
@@ -177,12 +194,12 @@ public class StarkNativeShield extends ExploreFutureBetterReferenceShield {
         return registry.reference(CONTROLLER_NAME);
     }
 
-    private DataState getInitialState(RandomGenerator rg, Action initialIntention) {
+    protected DataState getInitialState(RandomGenerator rg, Action initialIntention) {
         List<Vehicle> vehicles = copyDetectedVehiclesForNativePrediction(rg);
         return toNativeDataState(vehicles, new boolean[vehicleCount()], initialIntention);
     }
 
-    private List<DataStateUpdate> getControllerUpdates(RandomGenerator rg, DataState state,
+    protected List<DataStateUpdate> getControllerUpdates(RandomGenerator rg, DataState state,
                                                        List<Action> actionSequence) {
         List<Vehicle> vehicles = vehiclesFromState(state);
         JavaHighwayEngine nativeEngine = nativeEngineFor(state, vehicles);
@@ -217,7 +234,7 @@ public class StarkNativeShield extends ExploreFutureBetterReferenceShield {
         return updatesForVehicles(vehicles, state);
     }
 
-    private List<DataStateUpdate> getEnvironmentUpdates(RandomGenerator rg, DataState state) {
+    protected List<DataStateUpdate> getEnvironmentUpdates(RandomGenerator rg, DataState state) {
         List<Vehicle> vehicles = vehiclesFromState(state);
         JavaHighwayEngine nativeEngine = nativeEngineFor(state, vehicles);
         for (Vehicle vehicle : vehicles) {
@@ -228,7 +245,7 @@ public class StarkNativeShield extends ExploreFutureBetterReferenceShield {
         return updatesForVehicles(vehicles, state);
     }
 
-    private List<Vehicle> copyDetectedVehiclesForNativePrediction(RandomGenerator rg) {
+    protected List<Vehicle> copyDetectedVehiclesForNativePrediction(RandomGenerator rg) {
         List<Vehicle> copies = new ArrayList<>();
         for (Vehicle source : detectedVehiclesForNativePrediction()) {
             Vehicle copy = source instanceof NonNpcVehicle ? new NativeNonNpcVehicle() : new NativeNpcVehicle();
@@ -238,7 +255,7 @@ public class StarkNativeShield extends ExploreFutureBetterReferenceShield {
         return copies;
     }
 
-    private List<Vehicle> detectedVehiclesForNativePrediction() {
+    protected List<Vehicle> detectedVehiclesForNativePrediction() {
         for (Vehicle vehicle : sourceEngine.vehicles) {
             if (vehicle instanceof EgoVehicle egoVehicle) {
                 return new ArrayList<>(egoVehicle.getDetectedVehicles());
@@ -247,7 +264,7 @@ public class StarkNativeShield extends ExploreFutureBetterReferenceShield {
         throw new IllegalStateException("Cannot create native shield prediction without an EgoVehicle.");
     }
 
-    private void copyVehicleStateForNativePrediction(Vehicle source, Vehicle copy, RandomGenerator rg) {
+    protected void copyVehicleStateForNativePrediction(Vehicle source, Vehicle copy, RandomGenerator rg) {
         copy.TAU_ACC = source.TAU_ACC;
         copy.TAU_HEADING = source.TAU_HEADING;
         copy.TAU_LATERAL = source.TAU_LATERAL;
@@ -281,7 +298,7 @@ public class StarkNativeShield extends ExploreFutureBetterReferenceShield {
         }
     }
 
-    private double sandboxPoliteness(Vehicle source, Vehicle copy, RandomGenerator rg) {
+    protected double sandboxPoliteness(Vehicle source, Vehicle copy, RandomGenerator rg) {
         if (copy instanceof NonNpcVehicle) {
             return source.politeness;
         }
@@ -296,11 +313,11 @@ public class StarkNativeShield extends ExploreFutureBetterReferenceShield {
         };
     }
 
-    private boolean isFixPredictionEnabled() {
+    protected boolean isFixPredictionEnabled() {
         return sourceEngine.config != null && sourceEngine.config.isFixPrediction();
     }
 
-    private double randomFixedPredictionTargetSpeed(Vehicle vehicle, RandomGenerator rg) {
+    protected double randomFixedPredictionTargetSpeed(Vehicle vehicle, RandomGenerator rg) {
         double delta = sourceEngine.config == null
                 ? TARGET_SPEED_SAMPLE_DELTA
                 : sourceEngine.config.getFixedPredictionTargetSpeedDelta();
@@ -309,7 +326,7 @@ public class StarkNativeShield extends ExploreFutureBetterReferenceShield {
         return minTargetSpeed + rg.nextDouble() * (maxTargetSpeed - minTargetSpeed);
     }
 
-    private DataState toNativeDataState(List<Vehicle> vehicles, boolean[] historicalCutInIntent,
+    protected DataState toNativeDataState(List<Vehicle> vehicles, boolean[] historicalCutInIntent,
                                         Action initialIntention) {
         Map<Integer, Double> values = valuesForVehicles(vehicles, historicalCutInIntent, initialIntention);
         return new DataState(AuxiliarySingletonVarTable.stateSize(vehicleCount()),
@@ -338,7 +355,7 @@ public class StarkNativeShield extends ExploreFutureBetterReferenceShield {
         };
     }
 
-    private List<Vehicle> vehiclesFromState(DataState state) {
+    protected List<Vehicle> vehiclesFromState(DataState state) {
         List<Vehicle> vehicles = new ArrayList<>();
         for (int i = 0; i < vehicleCount(); i++) {
             Vehicle vehicle = state.get(vehicleOffset(i) + VarTable.role.ordinal()) == 0.0
@@ -350,7 +367,7 @@ public class StarkNativeShield extends ExploreFutureBetterReferenceShield {
         return vehicles;
     }
 
-    private void copyStateToVehicle(DataState state, int vehicleIndex, Vehicle vehicle) {
+    protected void copyStateToVehicle(DataState state, int vehicleIndex, Vehicle vehicle) {
         int offset = vehicleOffset(vehicleIndex);
         vehicle.id = String.valueOf((int) state.get(offset + VarTable.id.ordinal()));
         vehicle.politeness = state.get(offset + VarTable.politeness.ordinal());
@@ -369,7 +386,7 @@ public class StarkNativeShield extends ExploreFutureBetterReferenceShield {
         vehicle.targetSpeed = state.get(offset + VarTable.targetSpeed.ordinal());
     }
 
-    private List<DataStateUpdate> updatesForVehicles(List<Vehicle> vehicles, DataState previousState) {
+    protected List<DataStateUpdate> updatesForVehicles(List<Vehicle> vehicles, DataState previousState) {
         boolean[] historicalCutInIntent = historicalCutInIntent(previousState, vehicles);
         Action initialIntention = initialIntention(previousState);
         Map<Integer, Double> values = valuesForVehicles(vehicles, historicalCutInIntent, initialIntention);
@@ -381,7 +398,7 @@ public class StarkNativeShield extends ExploreFutureBetterReferenceShield {
         return updates;
     }
 
-    private Map<Integer, Double> valuesForVehicles(List<Vehicle> vehicles, boolean[] historicalCutInIntent,
+    protected Map<Integer, Double> valuesForVehicles(List<Vehicle> vehicles, boolean[] historicalCutInIntent,
                                                    Action initialIntention) {
         Map<Integer, Double> values = new HashMap<>();
         for (int i = 0; i < vehicles.size(); i++) {
@@ -426,7 +443,7 @@ public class StarkNativeShield extends ExploreFutureBetterReferenceShield {
         return values;
     }
 
-    private boolean[] historicalCutInIntent(DataState previousState, List<Vehicle> vehicles) {
+    protected boolean[] historicalCutInIntent(DataState previousState, List<Vehicle> vehicles) {
         boolean[] historical = new boolean[vehicleCount()];
         for (int i = 0; i < historical.length; i++) {
             int offset = vehicleOffset(i);
@@ -455,7 +472,7 @@ public class StarkNativeShield extends ExploreFutureBetterReferenceShield {
         return historical;
     }
 
-    private Action initialIntention(DataState state) {
+    protected Action initialIntention(DataState state) {
         if (auxiliaryIndex(AuxiliarySingletonVarTable.initialIntention) >= state.size()) {
             return null;
         }
@@ -466,7 +483,7 @@ public class StarkNativeShield extends ExploreFutureBetterReferenceShield {
         return Action.fromValue((int) Math.round(value));
     }
 
-    private JavaHighwayEngine nativeEngineFor(DataState state, List<Vehicle> vehicles) {
+    protected JavaHighwayEngine nativeEngineFor(DataState state, List<Vehicle> vehicles) {
         JavaHighwayEngine nativeEngine = new JavaHighwayEngine();
         nativeEngine.setFrequency(sourceEngine.getFrequency());
         nativeEngine.config = sourceEngine.config;
@@ -480,7 +497,7 @@ public class StarkNativeShield extends ExploreFutureBetterReferenceShield {
         return nativeEngine;
     }
 
-    private Vehicle egoVehicle(List<Vehicle> vehicles) {
+    protected Vehicle egoVehicle(List<Vehicle> vehicles) {
         for (Vehicle vehicle : vehicles) {
             if ("EGO".equals(vehicle.role)) {
                 return vehicle;
@@ -489,7 +506,7 @@ public class StarkNativeShield extends ExploreFutureBetterReferenceShield {
         return null;
     }
 
-    private void applyAction(Vehicle vehicle, Action action) {
+    protected void applyAction(Vehicle vehicle, Action action) {
         switch (action) {
             case LANE_LEFT:
                 vehicle.setTargetLaneIndex(Math.max(0, vehicle.getLaneIndex() - 1));
@@ -510,7 +527,7 @@ public class StarkNativeShield extends ExploreFutureBetterReferenceShield {
         }
     }
 
-    private double clipTargetSpeed(double targetSpeed) {
+    protected double clipTargetSpeed(double targetSpeed) {
         double maxTargetSpeed = sourceEngine.config == null ? 40.0 : sourceEngine.config.getMaxTargetSpeed();
         return Math.max(0.0, Math.min(maxTargetSpeed, targetSpeed));
     }
