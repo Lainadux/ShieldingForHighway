@@ -28,6 +28,8 @@ import RefractoredVersion.Shield.ExploreFutureActionSmarterShield;
 import RefractoredVersion.Shield.ExploreFutureBetterReferenceShield;
 import RefractoredVersion.Shield.ExploreFutureRssOShield;
 import RefractoredVersion.Shield.ExploreFutureRssShield;
+import RefractoredVersion.Shield.HeuristicShield;
+import RefractoredVersion.Shield.InstantHeuristicShield;
 import RefractoredVersion.Shield.StarkNativeShield;
 import RefractoredVersion.TestScript.Config.JavaMomentumConfig;
 import RefractoredVersion.TestScript.Config.ShieldType;
@@ -238,6 +240,14 @@ public class EgoVehicle extends Vehicle implements NonNpcVehicle, NotControlledB
                 StarkNativeShield starkNativeShield = new StarkNativeShield(this.getEngine());
                 boolean starkNativeSafe = starkNativeShield.verifySafe(action);
                 return shieldDecisionFrom(starkNativeSafe, starkNativeShield);
+            case HEURISTIC:
+                HeuristicShield heuristicShield = new HeuristicShield(this.getDetectedVehicles(), action);
+                boolean heuristicSafe = heuristicShield.verifySafe();
+                return new ShieldDecision(heuristicSafe, heuristicShield.getDiagnosis());
+            case INSTANT_HEURISTIC:
+                InstantHeuristicShield instantHeuristicShield = new InstantHeuristicShield(this.getDetectedVehicles(), action);
+                boolean instantHeuristicSafe = instantHeuristicShield.verifySafe();
+                return new ShieldDecision(instantHeuristicSafe, instantHeuristicShield.getDiagnosis());
             case EXPLORE_FUTURE_SMARTER_ACTION:
                 ArrayList<Action> smarterFutureActions = config == null || config.getFutureActions() == null
                         ? new ArrayList<>()

@@ -8,7 +8,7 @@ import RefractoredVersion.Engine.Vehicle;
 
 import java.util.ArrayList;
 import java.util.List;
-
+@Deprecated
 public class ExploreFutureActionSmarterShield extends ExploreFutureActionShield {
     public ExploreFutureActionSmarterShield(JavaHighwayEngine sourceEngine, List<Action> futureActions) {
         super(sourceEngine, futureActions);

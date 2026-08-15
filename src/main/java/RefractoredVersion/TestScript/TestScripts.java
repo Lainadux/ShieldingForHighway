@@ -46,7 +46,7 @@ public class TestScripts {
 //       config.setRandomEnableShieldPercent(60);
 
        config.setEgoType(EgoType.ExploreFutureSlowerVehicle);
-        config.setEgoType(EgoType.RssSoftEgoVehicle);
+        //config.setEgoType(EgoType.RssSoftEgoVehicle);
 
 //       //Ai- slower- slower
 //       config.setEgoType(EgoType.ExploreFutureSlowerVehicle);
@@ -72,9 +72,9 @@ public class TestScripts {
        config.setSensorRange(100);
        config.setNoisySensorOuterRange(100);
 
-       config.setTestFunction(TestFunction.RECOVER);
+       //config.setTestFunction(TestFunction.RECOVER);
        //config.setRecoverShieldTypeOverride(ShieldType.Ego);
-       //config.setTestFunction(TestFunction.GEN_LOGS);
+       config.setTestFunction(TestFunction.GEN_LOGS);
        String logsRoot = "C:\\MSCProject\\codes\\RefractoredVersionRepo\\src\\main\\java\\RefractoredVersion\\logs\\1785958235238\\RssSoftEgoVehicle_adversarial_EXPLORE_FUTURE_BETTER_REFERENCE_ACTION_LOGS\\crashed_20260805_213053_375_34.json";
 
        config.setRecoverInitialStateFile(logsRoot);

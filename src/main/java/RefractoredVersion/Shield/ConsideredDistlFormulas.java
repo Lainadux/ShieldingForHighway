@@ -1,7 +1,7 @@
 package RefractoredVersion.Shield;
 
 import it.unicam.quasylab.jspear.distl.DisTLFormula;
-
+@Deprecated
 public class ConsideredDistlFormulas {
     // We use nums of vehicles to locate the interested variables
     public int numsOfVehicles;

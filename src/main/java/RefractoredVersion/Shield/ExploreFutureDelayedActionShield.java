@@ -9,7 +9,7 @@ import RefractoredVersion.Engine.Vehicle;
 
 import java.util.ArrayList;
 import java.util.List;
-
+@Deprecated
 public class ExploreFutureDelayedActionShield extends ExploreFutureActionShield {
     private  int delayStep = 1;
 

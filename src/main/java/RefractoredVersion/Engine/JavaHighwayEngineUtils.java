@@ -38,10 +38,10 @@ public class JavaHighwayEngineUtils {
     private static final double KP_A = 1 / TAU_ACC;
     private static final double KP_HEADING = 1 / TAU_HEADING;
     private static final double KP_LATERAL = 1 / TAU_LATERAL;
-    private static final double COMFORT_ACC_MAX = 3.0;
+    public static final double COMFORT_ACC_MAX = 3.0;
     private static final double DISTANCE_WANTED = 10;
     public static final double DEFAULT_TIME_WANTED = 1.5;
-    private static final double COMFORT_ACC_MIN = -5.0;
+    public static final double COMFORT_ACC_MIN = -5.0;
     private static final double LANE_CHANGE_MIN_ACC_GAIN = 0.2;
     private static final double LANE_CHANGE_MAX_BRAKING_IMPOSED = 2.0;
 
@@ -297,7 +297,7 @@ public class JavaHighwayEngineUtils {
         double vT = v * DEFAULT_TIME_WANTED;
         double kineticTerm = (v * dv) / (2.0 * Math.sqrt(COMFORT_ACC_MAX * Math.abs(COMFORT_ACC_MIN)));
         double d_star = s0 + vT + kineticTerm;
-        d_star = Math.max(s0 + vT, d_star);
+        //d_star = Math.max(s0 + vT, d_star);
 
         return d_star;
     }
