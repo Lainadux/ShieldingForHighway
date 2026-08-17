@@ -706,7 +706,10 @@ public class ExploreFutureActionShield {
         }
         int egoIndex = getEgoVehicleIndex(state);
         int rearIndex = getConfiguredRearThreatRearVehicleIndex(state);
-        if (egoIndex < 0 || rearIndex < 0) {
+        if(egoIndex<0){
+            throw new IllegalStateException("Ego vehicle index not found in state");
+        }
+        if (rearIndex < 0) {
             return state;
         }
 
@@ -820,7 +823,10 @@ public class ExploreFutureActionShield {
     protected double changeLaneRearThreatPenalty(DataState state) {
         int egoIndex = getEgoVehicleIndex(state);
         int rearIndex = getConfiguredRearThreatRearVehicleIndex(state);
-        if (egoIndex < 0 || rearIndex < 0) {
+        if(egoIndex < 0){
+            throw new IllegalStateException("Ego vehicle index not found in state");
+        }
+        if (rearIndex < 0) {
             return 0.0;
         }
 
@@ -997,12 +1003,13 @@ public class ExploreFutureActionShield {
         return diagnosis.toString();
     }
     protected int getEgoVehicleIndex(DataState state) {
+
         for (int i = 0; i < vehicleCount(); i++) {
             if (state.get(vehicleOffset(i) + VarTable.role.ordinal()) == 0.0) {
                 return i;
             }
         }
-        return -1;
+        throw new IllegalStateException("Ego vehicle not found in state");
     }
 
     private boolean isEgoChangingLane(DataState state, int egoIndex) {
@@ -1083,7 +1090,7 @@ public class ExploreFutureActionShield {
     protected int candidateTargetLane(List<Vehicle> vehiclesAtStep, Action initialIntention) {
         int egoIndex = egoVehicleIndex(vehiclesAtStep);
         if (egoIndex < 0 || initialIntention == null) {
-            return -1;
+            throw new IllegalStateException("Missing ego car or initial intention for candidate target lane calculation");
         }
         Vehicle ego = vehiclesAtStep.get(egoIndex);
         switch (initialIntention) {
@@ -1107,11 +1114,20 @@ public class ExploreFutureActionShield {
 
     protected void populateRearThreatAuxiliaryValues(Map<Integer, Double> values, List<Vehicle> vehiclesAtStep) {
         int egoIndex = egoVehicleIndex(vehiclesAtStep);
-        int targetLane = candidateTargetLane(vehiclesAtStep, initialIntention(values));
-        if (egoIndex < 0 || targetLane < 0) {
+        if (egoIndex < 0) {
+            throw new IllegalStateException("Cannot populate rear-threat auxiliary values without ego vehicle");
+        }
+
+        Action initialAction = initialIntention(values);
+        if (initialAction != Action.LANE_LEFT && initialAction != Action.LANE_RIGHT) {
             values.put(auxiliaryIndex(AuxiliarySingletonVarTable.rearThreatRearVehicleIndex), -1.0);
             values.put(auxiliaryIndex(AuxiliarySingletonVarTable.rearThreatBeforeAcceleration), 0.0);
             return;
+        }
+
+        int targetLane = candidateTargetLane(vehiclesAtStep, initialAction);
+        if (targetLane < 0) {
+            throw new IllegalStateException("Lane-change action has no valid rear-threat target lane: " + initialAction);
         }
 
         int rearIndex = initialRearVehicleIndexInLane(values, vehicleCount(), egoIndex, targetLane);
@@ -1131,7 +1147,7 @@ public class ExploreFutureActionShield {
     protected Action initialIntention(Map<Integer, Double> values) {
         double value = values.getOrDefault(auxiliaryIndex(AuxiliarySingletonVarTable.initialIntention), -1.0);
         if (value < 0.0 || Double.isNaN(value)) {
-            return null;
+            throw new IllegalStateException("Cannot get initial intention");
         }
         return Action.fromValue((int) Math.round(value));
     }

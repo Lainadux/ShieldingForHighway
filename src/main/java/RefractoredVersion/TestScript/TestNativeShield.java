@@ -9,10 +9,10 @@ public class TestNativeShield {
         config.setTestFunction(TestFunction.GEN_LOGS);
         config.setRealWorldEngineType(RealWorldEngineType.BRUTAL);
         config.setNumsOfSimulations(100);
-        config.setEgoType(EgoType.ExploreFutureEgo);
+        config.setEgoType(EgoType.ExploreFutureSlowerVehicle);
         config.setShieldType(ShieldType.STARK_NATIVE);
         config.setAiProfile(AIProfile.adversarial);
-
+        config.setPATH_TO_SAVE("src/main/java/RefractoredVersion/logs/" + System.currentTimeMillis() + "/");
         //config.setMinX(0);
        //config.setMaxX(400);
         config.setDuration(30);
