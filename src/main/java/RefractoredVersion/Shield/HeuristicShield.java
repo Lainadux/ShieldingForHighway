@@ -123,7 +123,7 @@ public class HeuristicShield {
         EvolutionSequence sequence = new EvolutionSequence(rand, rg -> system, 30);
         this.sequence = sequence;
     }
-    private Controller getController() {
+    protected Controller getController() {
         ControllerRegistry registry = new ControllerRegistry();
         Controller self = registry.reference(CONTROLLER_NAME);
 
@@ -138,7 +138,7 @@ public class HeuristicShield {
     }
 
 
-    private List<DataStateUpdate> getControllerUpdates(RandomGenerator rg, DataState state) {
+    protected List<DataStateUpdate> getControllerUpdates(RandomGenerator rg, DataState state) {
         List<DataStateUpdate> updates = new ArrayList<>();
 
         int egoIndex = getEgoVehicleIndex(state);
@@ -180,7 +180,7 @@ public class HeuristicShield {
 
         return updates;
     }
-    private double egoPlannedAcceleration(DataState state, int egoIndex, List<DataStateUpdate> pendingUpdates) {
+    protected double egoPlannedAcceleration(DataState state, int egoIndex, List<DataStateUpdate> pendingUpdates) {
         double KP_A = 1/0.6;
 
         double targetSpeed = value(state, egoIndex, VarTable.targetSpeed);
@@ -196,23 +196,23 @@ public class HeuristicShield {
         return KP_A * (targetSpeed - speed);
     }
 
-    private double value(DataState state, int vehicleIndex, VarTable variable) {
+    protected double value(DataState state, int vehicleIndex, VarTable variable) {
         return state.get(vehicleOffset(vehicleIndex) + variable.ordinal());
     }
 
-    private int intValue(DataState state, int vehicleIndex, VarTable variable) {
+    protected int intValue(DataState state, int vehicleIndex, VarTable variable) {
         return (int) value(state, vehicleIndex, variable);
     }
 
-    private int vehicleOffset(int vehicleIndex) {
+    protected int vehicleOffset(int vehicleIndex) {
         return vehicleIndex * VarTable.values().length;
     }
 
-    private int vehicleCount() {
+    protected int vehicleCount() {
         return observedVehicles.size();
     }
 
-    private int getEgoVehicleIndex(DataState state) {
+    protected int getEgoVehicleIndex(DataState state) {
         for (int i = 0; i < vehicleCount(); i++) {
             if (value(state, i, VarTable.role) == 0.0) {
                 return i;
@@ -220,7 +220,7 @@ public class HeuristicShield {
         }
         return -1;
     }
-    private List<DataStateUpdate> applyActionToEgo(DataState state, int egoIndex, Action action) {
+    protected List<DataStateUpdate> applyActionToEgo(DataState state, int egoIndex, Action action) {
         if (action == null) {
             throw new IllegalArgumentException("candidateAction must not be null");
         }
@@ -269,7 +269,7 @@ public class HeuristicShield {
 
         return updates;
     }
-    private double clipTargetSpeed(double targetSpeed) {
+    protected double clipTargetSpeed(double targetSpeed) {
         return Math.max(0.0, Math.min(MAX_TARGET_SPEED, targetSpeed));
     }
     private DataState getInitialState() {

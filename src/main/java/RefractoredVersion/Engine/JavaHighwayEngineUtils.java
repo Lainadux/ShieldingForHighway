@@ -22,6 +22,8 @@
 
 package RefractoredVersion.Engine;
 
+import org.apache.commons.math3.random.RandomGenerator;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -46,6 +48,28 @@ public class JavaHighwayEngineUtils {
     protected static final double LANE_CHANGE_MAX_BRAKING_IMPOSED = 2.0;
 
     private static final double EGO_REAR_BRAKING_GAP_BUFFER = 2.0;
+
+    public static class IdmNoiseContext {
+        private final Map<String, Double> noiseByVehicleId = new HashMap<>();
+
+        public static IdmNoiseContext sample(RandomGenerator rg, List<Vehicle> vehicles, double radius) {
+            IdmNoiseContext context = new IdmNoiseContext();
+            for (Vehicle vehicle : vehicles) {
+                if (!(vehicle instanceof NonNpcVehicle)) {
+                    context.noiseByVehicleId.put(vehicle.id, uniformNoise(rg, radius));
+                }
+            }
+            return context;
+        }
+
+        public double noiseFor(Vehicle vehicle) {
+            return noiseByVehicleId.getOrDefault(vehicle.id, 0.0);
+        }
+
+        private static double uniformNoise(RandomGenerator rg, double radius) {
+            return -radius + 2.0 * radius * rg.nextDouble();
+        }
+    }
 
 
 
@@ -352,6 +376,44 @@ public class JavaHighwayEngineUtils {
                 computeAccel(vehicle, environments, vehicle.getLaneIndex())
         );
     }
+
+    public static double computeRawAccelWithNoise(
+            Vehicle vehicle,
+            Vehicle frontVehicle,
+            IdmNoiseContext noiseContext
+    ) throws Exception {
+        return computeRawAccel(vehicle, frontVehicle) + noiseContext.noiseFor(vehicle);
+    }
+
+    public static double computeRawAccelWithNoise(
+            Vehicle vehicle,
+            List<Vehicle> environments,
+            int laneNo,
+            IdmNoiseContext noiseContext
+    ) throws Exception {
+        return computeRawAccel(vehicle, environments, laneNo) + noiseContext.noiseFor(vehicle);
+    }
+
+    public static double computeAccelWithNoise(
+            Vehicle vehicle,
+            List<Vehicle> environments,
+            int laneNo,
+            IdmNoiseContext noiseContext
+    ) throws Exception {
+        return clip(computeRawAccelWithNoise(vehicle, environments, laneNo, noiseContext));
+    }
+
+    public static double computeIdmAccelerationWithNoise(
+            Vehicle vehicle,
+            List<Vehicle> environments,
+            IdmNoiseContext noiseContext
+    ) throws Exception {
+        return Math.min(
+                computeAccelWithNoise(vehicle, environments, vehicle.getTargetLaneIndex(), noiseContext),
+                computeAccelWithNoise(vehicle, environments, vehicle.getLaneIndex(), noiseContext)
+        );
+    }
+
     public static double clip(double accel){
         return Math.min(MAX_ACCELERATION, Math.max(MIN_BRAKE, accel));
     }
@@ -441,6 +503,106 @@ public class JavaHighwayEngineUtils {
         return computeTargetLane(vehicle, environments, possibleLanes, engine);
     }
 
+    public static int sandboxComputeTargetLaneWithNoise(
+            Vehicle vehicle,
+            List<Vehicle> environments,
+            List<Integer> possibleLanes,
+            JavaHighwayEngine engine,
+            IdmNoiseContext noiseContext
+    ) throws Exception {
+        if (vehicle instanceof PControlledVehicle) {
+            return vehicle.getTargetLaneIndex();
+        }
+        if (isLeadingVehicleInCurrentLane(vehicle, environments)) {
+            return vehicle.getTargetLaneIndex();
+        }
+        return computeTargetLaneWithNoise(vehicle, environments, possibleLanes, engine, noiseContext);
+    }
+
+    public static int computeTargetLaneWithNoise(
+            Vehicle vehicle,
+            List<Vehicle> environments,
+            List<Integer> possibleLanes,
+            JavaHighwayEngine engine,
+            IdmNoiseContext noiseContext
+    ) throws Exception {
+        if (vehicle instanceof PControlledVehicle) {
+            return vehicle.getTargetLaneIndex();
+        }
+        if (vehicle.cooldownTimer < 1.0 || isChangingLane(vehicle)) {
+            for (Vehicle other : environments) {
+                if (other == vehicle) {
+                    continue;
+                }
+                if (isChangingLane(other) && other.getTargetLaneIndex() == vehicle.getTargetLaneIndex()) {
+                    double d = vehicle.laneDistanceTo(other);
+                    double dStar = desiredGap(vehicle, other);
+                    if (0 < d && d < dStar) {
+                        return vehicle.getLaneIndex();
+                    }
+                }
+            }
+            return vehicle.getTargetLaneIndex();
+        }
+
+        Map<Integer, List<Double>> mobilmap = new HashMap<>();
+        vehicle.mobiling = true;
+        List<Integer> newLane = new ArrayList<>();
+        for (int lane : engine.computePossibleLanes(vehicle)) {
+            if (lane == vehicle.getLaneIndex()) {
+                continue;
+            }
+
+            double currentA = computeRawAccelWithNoise(vehicle, environments, vehicle.getLaneIndex(), noiseContext);
+            double newA = computeRawAccelWithNoise(vehicle, environments, lane, noiseContext);
+            double benefitAOld = 0;
+            double benefitANew = 0;
+            Vehicle benefitCarBehind = getRearVehicle(vehicle, environments, vehicle.getLaneIndex());
+            if (benefitCarBehind != null) {
+                benefitAOld = computeRawAccelWithNoise(benefitCarBehind, vehicle, noiseContext);
+                benefitANew = computeRawAccelWithNoise(
+                        benefitCarBehind,
+                        getFrontVehicle(vehicle, environments, vehicle.getLaneIndex()),
+                        noiseContext
+                );
+            }
+            double benefit = benefitANew - benefitAOld;
+
+            double karmaAOld = 0;
+            double karmaANew = 0;
+            Vehicle karmaCarBehind = getRearVehicle(vehicle, environments, lane);
+            if (karmaCarBehind != null) {
+                karmaAOld = computeRawAccelWithNoise(
+                        karmaCarBehind,
+                        getFrontVehicle(karmaCarBehind, environments, lane),
+                        noiseContext
+                );
+                karmaANew = computeRawAccelWithNoise(karmaCarBehind, vehicle, noiseContext);
+            }
+            double karma = karmaANew - karmaAOld;
+
+            double overallBenefit = (newA - currentA) + vehicle.politeness * (benefit + karma);
+            boolean safeConsideringRearVehicle =
+                    engine instanceof GentleNpcHighwayEngine
+                            ? isSafeConsideringRearVehicleGentleWithNoise(vehicle, karmaCarBehind, noiseContext)
+                            : isSafeConsideringRearVehicle(vehicle, karmaCarBehind, karmaANew, newA);
+
+            if (overallBenefit > LANE_CHANGE_MIN_ACC_GAIN && safeConsideringRearVehicle) {
+                newLane.add(lane);
+            }
+
+            mobilmap.put(lane, List.of(overallBenefit, newA - currentA, benefit, karmaANew));
+        }
+
+        vehicle.mobil = mobilmap;
+        vehicle.possible_lanes = newLane.stream().mapToInt(i -> i).toArray();
+        if (!newLane.isEmpty()) {
+            vehicle.cooldownTimer = 0.0;
+            return newLane.get(newLane.size() - 1);
+        }
+        return vehicle.getLaneIndex();
+    }
+
     private static boolean isLeadingVehicleInCurrentLane(Vehicle vehicle, List<Vehicle> environments) {
         int lane = vehicle.getLaneIndex();
         for (Vehicle other : environments) {
@@ -463,6 +625,22 @@ public class JavaHighwayEngineUtils {
 
         double rearPredictedAcceleration =
                 computeIdmReasoningAcceleration(rearVehicle, laneChangingVehicle);
+
+        return rearPredictedAcceleration > -LANE_CHANGE_MAX_BRAKING_IMPOSED;
+    }
+
+    public static boolean isSafeConsideringRearVehicleGentleWithNoise(
+            Vehicle laneChangingVehicle,
+            Vehicle rearVehicle,
+            IdmNoiseContext noiseContext
+    ) throws Exception {
+        if (rearVehicle == null) {
+            return true;
+        }
+
+        double rearPredictedAcceleration =
+                computeIdmReasoningAcceleration(rearVehicle, laneChangingVehicle)
+                        + noiseContext.noiseFor(rearVehicle);
 
         return rearPredictedAcceleration > -LANE_CHANGE_MAX_BRAKING_IMPOSED;
     }

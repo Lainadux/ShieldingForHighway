@@ -7,6 +7,7 @@ import RefractoredVersion.Shield.ExploreFutureBetterReferenceShield;
 import RefractoredVersion.Shield.ExploreFutureRssOShield;
 import RefractoredVersion.Shield.ExploreFutureRssShield;
 import RefractoredVersion.Shield.StarkNativeExploreFutureShield;
+import RefractoredVersion.Shield.StarkNativeWithRandomIDM;
 import RefractoredVersion.TestScript.Config.JavaMomentumConfig;
 import RefractoredVersion.TestScript.Config.ShieldType;
 import it.unicam.quasylab.jspear.distl.DisTLFormula;
@@ -239,6 +240,34 @@ public class ExploreFutureEgo extends EgoVehicle {
                 return new ShieldDecision(false, lastNativeShield == null
                         ? lastNativeDiagnosis
                         : lastNativeShield.getUnsafeDiagnosis());
+            case STARK_NATIVE_RANDOM_IDM:
+                StarkNativeWithRandomIDM lastRandomIdmShield = null;
+                String lastRandomIdmDiagnosis = "";
+                for(Action f:this.firstFallbackOrderedActionSet){
+                    List<Action> fallbackSequence = List.of(f);
+                    StarkNativeWithRandomIDM randomIdmShield =
+                            new StarkNativeWithRandomIDM(this.getEngine(), fallbackSequence);
+                    List<DisTLFormula> exploreFutureCriteria = List.of(randomIdmShield.evaluateCutIn());
+                    boolean randomIdmSafe = randomIdmShield.verifySafe(action, exploreFutureCriteria);
+                    if (shouldPrintDiagnostics()) {
+                        System.out.println("----------");
+                        System.out.printf("%s stark native random IDM explore future shield: ai_action=%s, fallback_sequence=%s%n",
+                                randomIdmSafe ? "Safe" : "Unsafe",
+                                action,
+                                fallbackSequence);
+                        System.out.println(randomIdmShield.getUnsafeDiagnosis());
+                    }
+                    if(randomIdmSafe){
+                        rebuildCachedActions(fallbackSequence);
+                        return shieldDecisionFrom(true, randomIdmShield);
+                    }
+                    lastRandomIdmShield = randomIdmShield;
+                    lastRandomIdmDiagnosis = randomIdmShield.getUnsafeDiagnosis();
+                }
+
+                return new ShieldDecision(false, lastRandomIdmShield == null
+                        ? lastRandomIdmDiagnosis
+                        : lastRandomIdmShield.getUnsafeDiagnosis());
             default:
                 throw new IllegalArgumentException("Unsupported shield type: " + shieldType);
         }

@@ -32,6 +32,7 @@ public enum EgoType {
     ExploreFutureWithoutCachingFallback,
     ExploreFutureWithIdleSlowerFallback,
     ExploreFutureSlowerVehicle,
+    CascadedRecoExploreVehicle,
     CounterFactualExploreFutureSlowerVehicle,
     EgoRandomEnableShield,
     EgoRandomFallback,

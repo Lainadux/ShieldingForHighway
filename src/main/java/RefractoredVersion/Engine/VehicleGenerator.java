@@ -105,28 +105,56 @@ public class VehicleGenerator {
             minX = DEFAULT_MIN_X;
             maxX = DEFAULT_MAX_X;
         }
+        boolean egoSpawnInMiddle = javaMomentumConfig.isEgoSpawnInMiddle();
+        boolean egoSpawned = false;
+        double egoMiddleX = (minX + maxX) / 2.0;
 
         while (spawned < DEFAULT_TARGET_VEHICLES && attempts < maxAttempts) {
             attempts++;
 
             int lane = rand.nextInt(DEFAULT_NUM_LANES);
-            Vehicle vehicle = spawned == 0 ? createEgoVehicle(javaMomentumConfig) : new Vehicle();
-            vehicle.role = spawned == 0 ? "EGO" : "NPC";
+            double candidateNpcSpeed = Double.NaN;
+            double candidateNpcX = Double.NaN;
+            boolean isEgo;
+            if (egoSpawnInMiddle) {
+                candidateNpcSpeed = sampleNpcInitialSpeed(rand);
+                candidateNpcX = nextPythonStyleNpcX(vehicles, rand, candidateNpcSpeed);
+                isEgo = !egoSpawned && candidateNpcX >= egoMiddleX;
+            }
+            else {
+                isEgo = spawned == 0;
+            }
+
+            if (!isEgo && Double.isNaN(candidateNpcSpeed)) {
+                candidateNpcSpeed = sampleNpcInitialSpeed(rand);
+                candidateNpcX = nextPythonStyleNpcX(vehicles, rand, candidateNpcSpeed);
+            }
+            Vehicle vehicle = isEgo ? createEgoVehicle(javaMomentumConfig) : new Vehicle();
+            vehicle.role = isEgo ? "EGO" : "NPC";
             vehicle.id = String.valueOf(spawned);
             vehicle.y = lane * LANE_WIDTH;
             vehicle.setLaneIndex(lane);
             vehicle.setTargetLaneIndex(lane);
             vehicle.cooldownTimer = rand.nextDouble();
 
-            vehicle.speed = "EGO".equals(vehicle.role) ? 25.0 : sampleNpcInitialSpeed(rand);
-            vehicle.x = "EGO".equals(vehicle.role)
-                    ? minX
-                    : nextPythonStyleNpcX(vehicles, rand, vehicle.speed);
-            vehicle.x = Math.min(maxX, Math.max(minX, vehicle.x));
+            vehicle.speed = isEgo ? 25.0 : candidateNpcSpeed;
+            if (isEgo && spawned == 0) {
+                vehicle.x = minX;
+            }
+            else if (isEgo) {
+                vehicle.x = egoMiddleX;
+            }
+            else {
+                vehicle.x = candidateNpcX;
+                if (vehicle.x > maxX) {
+                    break;
+                }
+                vehicle.x = Math.max(minX, vehicle.x);
+            }
             vehicle.vx = vehicle.speed;
             vehicle.vy = 0.0;
             vehicle.targetSpeed = vehicle.speed;
-            if (!"EGO".equals(vehicle.role) && javaMomentumConfig.isRandomizeNpcPoliteness()) {
+            if (!isEgo && javaMomentumConfig.isRandomizeNpcPoliteness()) {
                 vehicle.politeness = rand.nextDouble() * 0.3;
             }
 
@@ -135,7 +163,14 @@ public class VehicleGenerator {
             }
 
             vehicles.add(vehicle);
+            if (isEgo) {
+                egoSpawned = true;
+            }
             spawned++;
+        }
+
+        if (vehicles.stream().noneMatch(vehicle -> "EGO".equals(vehicle.role))) {
+            throw new IllegalStateException("Failed to spawn ego vehicle within configured initial traffic range.");
         }
 
         return vehicles;
@@ -173,6 +208,9 @@ public class VehicleGenerator {
             case ExploreFutureSlowerVehicle:
                 ExploreFutureSlowerVehicle exploreFutureSlowerVehicle = new ExploreFutureSlowerVehicle();
                 return configureEgoVehicle(exploreFutureSlowerVehicle, javaMomentumConfig);
+            case CascadedRecoExploreVehicle:
+                CascadedRecoExploreVehicle cascadedRecoExploreVehicle = new CascadedRecoExploreVehicle();
+                return configureEgoVehicle(cascadedRecoExploreVehicle, javaMomentumConfig);
             case CounterFactualExploreFutureSlowerVehicle:
                 CounterFactualExploreFutureSlowerVehicle counterFactualExploreFutureSlowerVehicle =
                         new CounterFactualExploreFutureSlowerVehicle();

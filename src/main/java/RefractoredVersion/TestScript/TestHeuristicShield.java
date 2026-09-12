@@ -8,11 +8,19 @@ public class TestHeuristicShield {
         JavaMomentumConfig config = new JavaMomentumConfig();
         config.setTestFunction(TestFunction.QUICK_TEST);
         config.setRealWorldEngineType(RealWorldEngineType.BRUTAL);
-        config.setPATH_TO_SAVE("src/main/java/RefractoredVersion/logs/Heursitic200Brutal" + System.currentTimeMillis() + "/");
-        config.setEgoType(EgoType.EgoVehicle);
-        config.setShieldType(ShieldType.HEURISTIC);
+        config.setPATH_TO_SAVE("src/main/java/RefractoredVersion/logs/" + System.currentTimeMillis() + "/");
+        config.setEgoType(EgoType.ExploreFutureSlowerVehicle);
+        config.setShieldType(ShieldType.STARK_NATIVE);
 
-        config.setTestFunction(TestFunction.GEN_LOGS);
+
+        //config.setTestFunction(TestFunction.GEN_LOGS);
+        //config.setTestFunction(TestFunction.RECOVER);
+
+
+        String logsRoot = "C:\\MSCProject\\RefractoredStarkedShield\\src\\main\\java\\RefractoredVersion\\logs\\table3_1786988006539\\ExploreFutureEgo_adversarial_STARK_NATIVE_LOGS\\safe_20260817_195343_093_1.json";
+
+        config.setRecoverInitialStateFile(logsRoot);
+
 
         config.setAiProfile(AIProfile.adversarial);
         config.setNumsOfSimulations(200);

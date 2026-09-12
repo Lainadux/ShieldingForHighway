@@ -54,6 +54,7 @@ public class JavaMomentumConfig extends Config {
     private boolean randomizeNpcPoliteness = false;
     private SandboxNpcPolitenessMode sandboxNpcPolitenessMode = SandboxNpcPolitenessMode.COPY_REAL;
     private RealWorldEngineType realWorldEngineType = RealWorldEngineType.BRUTAL;
+    private boolean egoSpawnInMiddle = false;
     @Deprecated
     private List<Action> futureActions = new ArrayList<>();
     @Deprecated

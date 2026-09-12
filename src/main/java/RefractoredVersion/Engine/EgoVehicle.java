@@ -31,6 +31,7 @@ import RefractoredVersion.Shield.ExploreFutureRssShield;
 import RefractoredVersion.Shield.HeuristicShield;
 import RefractoredVersion.Shield.InstantHeuristicShield;
 import RefractoredVersion.Shield.StarkNativeShield;
+import RefractoredVersion.Shield.StarkNativeWithRandomIDM;
 import RefractoredVersion.TestScript.Config.JavaMomentumConfig;
 import RefractoredVersion.TestScript.Config.ShieldType;
 
@@ -240,6 +241,10 @@ public class EgoVehicle extends Vehicle implements NonNpcVehicle, NotControlledB
                 StarkNativeShield starkNativeShield = new StarkNativeShield(this.getEngine());
                 boolean starkNativeSafe = starkNativeShield.verifySafe(action);
                 return shieldDecisionFrom(starkNativeSafe, starkNativeShield);
+            case STARK_NATIVE_RANDOM_IDM:
+                StarkNativeWithRandomIDM randomIdmShield = new StarkNativeWithRandomIDM(this.getEngine());
+                boolean randomIdmSafe = randomIdmShield.verifySafe(action);
+                return shieldDecisionFrom(randomIdmSafe, randomIdmShield);
             case HEURISTIC:
                 HeuristicShield heuristicShield = new HeuristicShield(this.getDetectedVehicles(), action);
                 boolean heuristicSafe = heuristicShield.verifySafe();

@@ -114,6 +114,7 @@ public class RunMetadataStore {
         private Integer randomEnableShieldPercent;
         private Boolean randomizeNpcPoliteness;
         private String sandboxNpcPolitenessMode;
+        private Boolean egoSpawnInMiddle;
         private List<String> futureActions;
         private Double minX;
         private Double maxX;
@@ -140,6 +141,7 @@ public class RunMetadataStore {
             this.sandboxNpcPolitenessMode = config.getSandboxNpcPolitenessMode() == null
                     ? null
                     : config.getSandboxNpcPolitenessMode().name();
+            this.egoSpawnInMiddle = config.isEgoSpawnInMiddle();
             this.futureActions = config.getFutureActions() == null
                     ? null
                     : config.getFutureActions().stream().map(Action::name).toList();
@@ -198,6 +200,9 @@ public class RunMetadataStore {
             }
             if (sandboxNpcPolitenessMode != null && !sandboxNpcPolitenessMode.isBlank()) {
                 config.setSandboxNpcPolitenessMode(SandboxNpcPolitenessMode.valueOf(sandboxNpcPolitenessMode));
+            }
+            if (egoSpawnInMiddle != null) {
+                config.setEgoSpawnInMiddle(egoSpawnInMiddle);
             }
             if (futureActions != null) {
                 config.setFutureActions(futureActions.stream().map(Action::valueOf).toList());
