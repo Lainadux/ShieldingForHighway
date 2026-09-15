@@ -42,6 +42,7 @@ import RefractoredVersion.Engine.ExploreFutureWithIdleSlowerFallback;
 import RefractoredVersion.Engine.ExploreFutureWithoutCachingFallback;
 import RefractoredVersion.Engine.GentleNpcHighwayEngine;
 import RefractoredVersion.Engine.NoShieldEgo;
+import RefractoredVersion.Engine.PeriodicInterventionEgoVehicle;
 import RefractoredVersion.Engine.RandomEgoVehicle;
 import RefractoredVersion.Engine.RssStrictEgoVehicle;
 import RefractoredVersion.Engine.RssSoftEgoVehicle;
@@ -316,6 +317,12 @@ public class Runner {
                 AIProfile aiProfile = config.getAiProfile() == null ? AIProfile.base : config.getAiProfile();
                 egoVehicle.aiProfile = aiProfile;
                 return configureRecoveredEgoVehicle(egoVehicle, config);
+            case PeriodicInterventionEgoVehicle:
+                PeriodicInterventionEgoVehicle periodicInterventionEgoVehicle =
+                        new PeriodicInterventionEgoVehicle();
+                AIProfile periodicAiProfile = config.getAiProfile() == null ? AIProfile.base : config.getAiProfile();
+                periodicInterventionEgoVehicle.aiProfile = periodicAiProfile;
+                return configureRecoveredEgoVehicle(periodicInterventionEgoVehicle, config);
             case EgoDelayedVehicle:
                 EgoDelayedVehicle egoDelayedVehicle = new EgoDelayedVehicle();
                 AIProfile egoDelayedAiProfile = config.getAiProfile() == null ? AIProfile.base : config.getAiProfile();

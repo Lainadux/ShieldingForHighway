@@ -72,10 +72,10 @@ public class TestScripts {
        config.setSensorRange(100);
        config.setNoisySensorOuterRange(100);
 
-       //config.setTestFunction(TestFunction.RECOVER);
+       config.setTestFunction(TestFunction.RECOVER);
        //config.setRecoverShieldTypeOverride(ShieldType.Ego);
-       config.setTestFunction(TestFunction.GEN_LOGS);
-       String logsRoot = "C:\\MSCProject\\codes\\RefractoredVersionRepo\\src\\main\\java\\RefractoredVersion\\logs\\1785958235238\\RssSoftEgoVehicle_adversarial_EXPLORE_FUTURE_BETTER_REFERENCE_ACTION_LOGS\\crashed_20260805_213053_375_34.json";
+       //config.setTestFunction(TestFunction.GEN_LOGS);
+       String logsRoot = "C:\\MSCProject\\RefractoredStarkedShield\\src\\main\\java\\RefractoredVersion\\logs\\four_hz_1789237232447\\EgoVehicle_adversarial_RECO_4HZ_LOGS\\crashed_20260912_202556_973_98.json";
 
        config.setRecoverInitialStateFile(logsRoot);
 

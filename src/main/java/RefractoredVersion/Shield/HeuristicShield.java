@@ -21,7 +21,7 @@ import java.util.List;
 import java.util.Map;
 
 public class HeuristicShield {
-    protected static final double MIN_TTC_THRESHOLD = 4.0;
+    protected static final double MIN_TTC_THRESHOLD = 2.0;
     private static final double DESIRED_MIN_TTC = 100.0;
     protected static final double q = 0;
     int frequency = 4;

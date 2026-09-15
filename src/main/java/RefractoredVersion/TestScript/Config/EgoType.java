@@ -26,6 +26,7 @@ public enum EgoType {
     RandomEgoVehicle,
     NoShieldEgo,
     EgoVehicle,
+    PeriodicInterventionEgoVehicle,
     EgoDelayedVehicle,
     AlwaysFasterVehicle,
     ExploreFutureEgo,

@@ -7,11 +7,11 @@ public class TestHeuristicShield {
     public static void main(String[] args) throws Exception {
         JavaMomentumConfig config = new JavaMomentumConfig();
         config.setTestFunction(TestFunction.QUICK_TEST);
-        config.setRealWorldEngineType(RealWorldEngineType.BRUTAL);
+        config.setRealWorldEngineType(RealWorldEngineType.GENTLE);
         config.setPATH_TO_SAVE("src/main/java/RefractoredVersion/logs/" + System.currentTimeMillis() + "/");
-        config.setEgoType(EgoType.ExploreFutureSlowerVehicle);
-        config.setShieldType(ShieldType.STARK_NATIVE);
-
+        config.setEgoType(EgoType.EgoVehicle);
+        config.setShieldType(ShieldType.HEURISTIC);
+        config.setTestFunction(TestFunction.GEN_LOGS);
 
         //config.setTestFunction(TestFunction.GEN_LOGS);
         //config.setTestFunction(TestFunction.RECOVER);
@@ -23,7 +23,7 @@ public class TestHeuristicShield {
 
 
         config.setAiProfile(AIProfile.adversarial);
-        config.setNumsOfSimulations(200);
+        config.setNumsOfSimulations(100);
         config.setMinX(0);
         config.setMaxX(400);
         config.setDuration(30);

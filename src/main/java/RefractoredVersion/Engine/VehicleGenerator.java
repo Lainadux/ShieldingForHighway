@@ -188,6 +188,10 @@ public class VehicleGenerator {
             case EgoVehicle:
                 EgoVehicle egoVehicle = new EgoVehicle();
                 return configureEgoVehicle(egoVehicle, javaMomentumConfig);
+            case PeriodicInterventionEgoVehicle:
+                PeriodicInterventionEgoVehicle periodicInterventionEgoVehicle =
+                        new PeriodicInterventionEgoVehicle();
+                return configureEgoVehicle(periodicInterventionEgoVehicle, javaMomentumConfig);
             case EgoDelayedVehicle:
                 EgoDelayedVehicle egoDelayedVehicle = new EgoDelayedVehicle();
                 return configureEgoVehicle(egoDelayedVehicle, javaMomentumConfig);

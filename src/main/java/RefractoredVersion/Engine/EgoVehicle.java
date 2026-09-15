@@ -29,9 +29,12 @@ import RefractoredVersion.Shield.ExploreFutureBetterReferenceShield;
 import RefractoredVersion.Shield.ExploreFutureRssOShield;
 import RefractoredVersion.Shield.ExploreFutureRssShield;
 import RefractoredVersion.Shield.HeuristicShield;
+import RefractoredVersion.Shield.Heuristic4HzShield;
 import RefractoredVersion.Shield.InstantHeuristicShield;
+import RefractoredVersion.Shield.Reco4HzShield;
 import RefractoredVersion.Shield.StarkNativeShield;
 import RefractoredVersion.Shield.StarkNativeWithRandomIDM;
+import RefractoredVersion.Shield.TtcStochasticHeuristicShield;
 import RefractoredVersion.TestScript.Config.JavaMomentumConfig;
 import RefractoredVersion.TestScript.Config.ShieldType;
 
@@ -249,6 +252,22 @@ public class EgoVehicle extends Vehicle implements NonNpcVehicle, NotControlledB
                 HeuristicShield heuristicShield = new HeuristicShield(this.getDetectedVehicles(), action);
                 boolean heuristicSafe = heuristicShield.verifySafe();
                 return new ShieldDecision(heuristicSafe, heuristicShield.getDiagnosis());
+            case TTC_STOCHASTIC_HEURISTIC:
+                TtcStochasticHeuristicShield stochasticHeuristicShield =
+                        new TtcStochasticHeuristicShield(this.getDetectedVehicles(), action);
+                boolean stochasticHeuristicSafe = stochasticHeuristicShield.verifySafe();
+                return new ShieldDecision(
+                        stochasticHeuristicSafe,
+                        stochasticHeuristicShield.getDiagnosis()
+                );
+            case HEURISTIC_4HZ:
+                Heuristic4HzShield heuristic4HzShield = new Heuristic4HzShield(this.getDetectedVehicles(), action);
+                boolean heuristic4HzSafe = heuristic4HzShield.verifySafe();
+                return new ShieldDecision(heuristic4HzSafe, heuristic4HzShield.getDiagnosis());
+            case RECO_4HZ:
+                Reco4HzShield reco4HzShield = new Reco4HzShield(this.getEngine());
+                boolean reco4HzSafe = reco4HzShield.verifySafe(action);
+                return shieldDecisionFrom(reco4HzSafe, reco4HzShield);
             case INSTANT_HEURISTIC:
                 InstantHeuristicShield instantHeuristicShield = new InstantHeuristicShield(this.getDetectedVehicles(), action);
                 boolean instantHeuristicSafe = instantHeuristicShield.verifySafe();
