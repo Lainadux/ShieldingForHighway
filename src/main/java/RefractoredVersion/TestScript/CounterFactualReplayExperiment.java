@@ -127,6 +127,13 @@ public class CounterFactualReplayExperiment {
 
     private static void replayCounterFactualLog() throws Exception {
         Path logFile = REPLAY_LOG_FILE.toString().isBlank() ? latestCounterFactualLog() : REPLAY_LOG_FILE;
+        replay(logFile);
+    }
+
+    public static void replay(Path logFile) throws Exception {
+        if (logFile == null) {
+            throw new IllegalArgumentException("Counterfactual replay log path must not be null.");
+        }
         List<CounterFactualEpisodeLog> episodeLogs = GSON.fromJson(
                 Files.readString(logFile, StandardCharsets.UTF_8),
                 EPISODE_LOG_LIST_TYPE
@@ -247,7 +254,7 @@ public class CounterFactualReplayExperiment {
     private static JavaMomentumConfig baseConfig() {
         JavaMomentumConfig config = new JavaMomentumConfig();
         config.setGenLogs(true);
-        config.setShieldType(ShieldType.EXPLORE_FUTURE_ACTION);
+        config.setShieldType(ShieldType.STARK_NATIVE_RANDOM_IDM);
         config.setEgoType(EgoType.CounterFactualExploreFutureSlowerVehicle);
         config.setAiProfile(AIProfile.adversarial);
         config.setMinX(0);

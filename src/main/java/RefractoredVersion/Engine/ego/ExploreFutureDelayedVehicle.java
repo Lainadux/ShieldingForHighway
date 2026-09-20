@@ -6,6 +6,7 @@ import RefractoredVersion.Engine.JavaHighwayEngineUtils;
 
 import RefractoredVersion.Shield.ExploreFutureActionShield;
 import RefractoredVersion.Shield.ExploreFutureDelayedActionShield;
+import RefractoredVersion.Shield.StarkNativeDelayedActionShield;
 import RefractoredVersion.TestScript.Config.JavaMomentumConfig;
 import RefractoredVersion.TestScript.Config.ShieldType;
 import it.unicam.quasylab.jspear.distl.DisTLFormula;
@@ -93,20 +94,46 @@ public class ExploreFutureDelayedVehicle  extends ExploreFutureEgo{
         ShieldType shieldType = config == null || config.getShieldType() == null
                 ? ShieldType.EXPLORE_FUTURE_DELAYED_ACTION
                 : config.getShieldType();
-        if(shieldType != ShieldType.EXPLORE_FUTURE_DELAYED_ACTION){
+        if (shieldType != ShieldType.EXPLORE_FUTURE_DELAYED_ACTION
+                && shieldType != ShieldType.STARK_NATIVE_DELAYED_ACTION) {
             throw new IllegalArgumentException("Delayed vehicle using unsupported shield type: " + shieldType);
         }
+
+        if (shieldType == ShieldType.STARK_NATIVE_DELAYED_ACTION) {
+            List<Action> fallbackSequence = List.of(Action.SLOWER, Action.SLOWER);
+            StarkNativeDelayedActionShield nativeShield = new StarkNativeDelayedActionShield(
+                    this.getEngine(), fallbackSequence, delayedStep);
+            boolean nativeSafe = nativeShield.verifySafe(
+                    action,
+                    List.of(nativeShield.evaluateCutIn())
+            );
+            if (shouldPrintDiagnostics()) {
+                System.out.println("----------");
+                System.out.printf("%s delayed native shield: ai_action=%s, fallback_sequence=%s%n",
+                        nativeSafe ? "Safe" : "Unsafe",
+                        action,
+                        fallbackSequence);
+                System.out.println(nativeShield.getUnsafeDiagnosis());
+            }
+            if (nativeSafe) {
+                rebuildCachedActions(fallbackSequence);
+            }
+            return new ShieldDecision(nativeSafe, nativeShield.getUnsafeDiagnosis());
+        }
+
         ExploreFutureActionShield lastShield = null;
         String lastDiagnosis = "";
         for(Action f:this.firstFallbackOrderedActionSet){
             List<Action> fallbackSequence = List.of(f);
-            ExploreFutureDelayedActionShield exploreShield = new ExploreFutureDelayedActionShield(this.getEngine(), fallbackSequence, delayedStep);
+            ExploreFutureActionShield exploreShield = new ExploreFutureDelayedActionShield(
+                    this.getEngine(), fallbackSequence, delayedStep);
             List<DisTLFormula> exploreFutureCriteria = List.of(exploreShield.evaluateCutIn());
             boolean exploreSafe = exploreShield.verifySafe(action, exploreFutureCriteria);
             if (shouldPrintDiagnostics()) {
                 System.out.println("----------");
-                System.out.printf("%s explore future shield: ai_action=%s, fallback_sequence=%s%n",
+                System.out.printf("%s delayed shield (%s): ai_action=%s, fallback_sequence=%s%n",
                         exploreSafe ? "Safe" : "Unsafe",
+                        shieldType,
                         action,
                         fallbackSequence);
                 System.out.println(exploreShield.getUnsafeDiagnosis());

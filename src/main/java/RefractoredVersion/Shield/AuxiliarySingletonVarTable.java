@@ -2,13 +2,19 @@ package RefractoredVersion.Shield;
 
 public enum AuxiliarySingletonVarTable {
     crashed,
+    @Deprecated
     finalFrontVehicleIndexInCurrentLane,
+    @Deprecated
     finalFrontVehicleIndexInLeftLane,
+    @Deprecated
     finalFrontVehicleIndexInRightLane,
     isInitialChangeLane,
     initialIntention,
+    @Deprecated
     rearThreatRearVehicleIndex,
+    @Deprecated
     rearThreatBeforeAcceleration,
+    @Deprecated
     endStateTTC;
 
 

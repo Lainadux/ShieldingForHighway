@@ -54,6 +54,39 @@ public class StarkNativeShield extends ExploreFutureBetterReferenceShield {
     }
 
     @Override
+    protected void populateSubclassVehicleValues(Map<Integer, Double> values,
+                                                 List<Vehicle> vehiclesAtStep,
+                                                 boolean[] historicalCutInIntent,
+                                                 Action initialIntention) {
+        int egoIndex = getEgoVehicleIndexFromValues(values);
+        if (egoIndex < 0) {
+            throw new IllegalStateException("Cannot construct final stability reference set without ego vehicle");
+        }
+
+        int egoOffset = vehicleOffset(egoIndex);
+        int egoLane = values.get(egoOffset + VarTable.lane_index.ordinal()).intValue();
+        double egoX = values.get(egoOffset + VarTable.x.ordinal());
+
+        // stableAtLastStep reads these marks only from the ending state.
+        for (int i = 0; i < vehicleCount(); i++) {
+            if (i == egoIndex) {
+                continue;
+            }
+
+            int offset = vehicleOffset(i);
+            double x = values.get(offset + VarTable.x.ordinal());
+            int lane = values.get(offset + VarTable.lane_index.ordinal()).intValue();
+            int targetLane = values.get(offset + VarTable.target_lane_index.ordinal()).intValue();
+            boolean sharesEgoLane = lane == egoLane;
+            boolean intendsToEnterEgoLane = lane != egoLane && targetLane == egoLane;
+
+            if (x > egoX && (sharesEgoLane || intendsToEnterEgoLane)) {
+                values.put(offset + VarTable.finalStabilityReference.ordinal(), 1.0);
+            }
+        }
+    }
+
+    @Override
     public boolean verifySafe(Action candidateAction) throws Exception {
         Objects.requireNonNull(candidateAction, "candidateAction must not be null");
         return verifySafeSequence(actionSequence(candidateAction));
@@ -121,10 +154,8 @@ public class StarkNativeShield extends ExploreFutureBetterReferenceShield {
                 noCollision,
                 new ConjunctionDisTLFormula(safeFrontDistanceAtFirstSecond, stableAtLastStep)
         );
-        DisTLFormula rearThreatCondition = new ConjunctionDisTLFormula(
-                changeLaneRearThreatAtDecisionStep,
-                changeLaneLowSpeedAtDecisionStep
-        );
+        DisTLFormula rearThreatCondition = changeLaneRearThreatAtDecisionStep;
+        // changeLaneLowSpeedAtDecisionStep remains evaluated for diagnostics but is not a shield condition.
         shieldCondition = new ConjunctionDisTLFormula(shieldCondition, rearThreatCondition);
 
         if (moreCriteria != null) {

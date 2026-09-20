@@ -57,7 +57,10 @@ public class ExploreFutureSlowerVehicle extends ExploreFutureEgo{
                 return shieldDecisionFrom(false, betterShield);
             case STARK_NATIVE:
                 StarkNativeShield starkNativeShield = new StarkNativeShield(this.getEngine());
-                boolean starkNativeSafe = starkNativeShield.verifySafe(action);
+                boolean starkNativeSafe = starkNativeShield.verifySafe(
+                        action,
+                        List.of(starkNativeShield.evaluateCutIn())
+                );
                 if (shouldPrintDiagnostics()) {
                     System.out.println("----------");
                     System.out.printf("%s stark native shield: ai_action=%s, fallback_sequence=%s%n",
@@ -73,7 +76,10 @@ public class ExploreFutureSlowerVehicle extends ExploreFutureEgo{
                 return shieldDecisionFrom(false, starkNativeShield);
             case STARK_NATIVE_RANDOM_IDM:
                 StarkNativeWithRandomIDM randomIdmShield = new StarkNativeWithRandomIDM(this.getEngine());
-                boolean randomIdmSafe = randomIdmShield.verifySafe(action);
+                boolean randomIdmSafe = randomIdmShield.verifySafe(
+                        action,
+                        List.of(randomIdmShield.evaluateCutIn())
+                );
                 if (shouldPrintDiagnostics()) {
                     System.out.println("----------");
                     System.out.printf("%s stark native random IDM shield: ai_action=%s, fallback_sequence=%s%n",

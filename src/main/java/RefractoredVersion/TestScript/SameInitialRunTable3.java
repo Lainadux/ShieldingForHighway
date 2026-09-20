@@ -105,17 +105,17 @@ public class SameInitialRunTable3 {
         }
     }
 
-    static String generateInitialStateJson(JavaMomentumConfig config) {
+    public static String generateInitialStateJson(JavaMomentumConfig config) {
         return GSON.toJson(VehicleGenerator.generateVehicles(config));
     }
 
-    static Double safeFinalEgoX(JavaMomentumConfig config, String initialStateJson) {
+    public static Double safeFinalEgoX(JavaMomentumConfig config, String initialStateJson) {
         SimulationResult result = runSimulation(config, initialStateJson);
         return result.crashed ? null : result.finalEgoX;
     }
 
-    static void runAndReport(String name, JavaMomentumConfig config,
-                             List<String> initialStates, Path groupDir) {
+    public static void runAndReport(String name, JavaMomentumConfig config,
+                                    List<String> initialStates, Path groupDir) {
         ExperimentSummary summary = runGroup(config, initialStates, groupDir);
         System.out.printf(
                 "Finished %s: runs=%d crashed=%d crash=%.2f%% rejected=%.2f%% meanX=%s%n",
@@ -128,11 +128,11 @@ public class SameInitialRunTable3 {
         );
     }
 
-    static JavaMomentumConfig defaultExperimentConfig() {
+    public static JavaMomentumConfig defaultExperimentConfig() {
         return baseConfig();
     }
 
-    static void saveJson(Path path, String json) {
+    public static void saveJson(Path path, String json) {
         writeJson(path, json);
     }
 
