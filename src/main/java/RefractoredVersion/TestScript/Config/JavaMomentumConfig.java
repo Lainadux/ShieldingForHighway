@@ -36,7 +36,7 @@ public class JavaMomentumConfig extends Config {
     private Integer stepsToPredict = DEFAULT_STEPS_TO_PREDICT;
     private Integer numOFSimulations = DEFAULT_NUM_OF_SIMULATIONS;
     private MethodToGenInitialState methodToGenInitialState = MethodToGenInitialState.DEFAULT;
-    private EgoType egoType = EgoType.RandomEgoVehicle;
+    private EgoType egoType = EgoType.EgoVehicle;
     private int frequency = 40;
     @Deprecated
     private int predictionTime = 3;
@@ -45,7 +45,7 @@ public class JavaMomentumConfig extends Config {
     private double fixedPredictionTargetSpeedDelta = 1.0;
     private double aggressiveV3TtcThreshold = 4.0;
     private String recoverInitialStateFile;
-    private ShieldType shieldType = ShieldType.ALL_SLOWER;
+    private ShieldType shieldType = ShieldType.HEURISTIC;
     private ShieldType recoverShieldTypeOverride;
     private int delayedActionStep = 1;
     private int sensorRange = 100;

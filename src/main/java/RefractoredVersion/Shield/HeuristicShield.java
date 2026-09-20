@@ -1,7 +1,7 @@
 package RefractoredVersion.Shield;
 
 import RefractoredVersion.Engine.Action;
-import RefractoredVersion.Engine.Vehicle;
+import RefractoredVersion.Engine.vehicle.Vehicle;
 import it.unicam.quasylab.jspear.ControlledSystem;
 import it.unicam.quasylab.jspear.DefaultRandomGenerator;
 import it.unicam.quasylab.jspear.EvolutionSequence;
@@ -19,7 +19,22 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
+/**
+ * Implements the TTC-based heuristic shield.
+ *
+ * <p>The shield constructs a STARK evolution sequence over a one-second
+ * prediction horizon. The candidate AI action is applied to the ego vehicle
+ * at the beginning of the prediction. During prediction, each NPC keeps its
+ * target lane unchanged and receives a longitudinal acceleration sampled
+ * uniformly from [-1, 1] m/s^2 at every prediction step. Vehicle states are
+ * then propagated using the low-level kinematic model.</p>
+ *
+ * <p>For every predicted state, the shield computes the minimum time to
+ * collision (TTC) between the ego vehicle and the relevant surrounding
+ * vehicles. A DisTL always formula checks the resulting TTC values against
+ * the configured safety threshold. The candidate action is accepted only
+ * when the formula has non-negative robustness.</p>
+ */
 public class HeuristicShield {
     protected static final double MIN_TTC_THRESHOLD = 2.0;
     private static final double DESIRED_MIN_TTC = 100.0;
@@ -298,7 +313,7 @@ public class HeuristicShield {
             values.put(offset + VarTable.idmActionStepLength.ordinal(), 0.0);
             values.put(offset + VarTable.reactionDelay.ordinal(), 0.0);
             values.put(offset + VarTable.historicalCutInIntent.ordinal(), 0.0);
-            values.put(offset + VarTable.rssStabilityReference.ordinal(), 0.0);
+            values.put(offset + VarTable.finalStabilityReference.ordinal(), 0.0);
 
             values.put(offset + VarTable.role.ordinal(),
                     "EGO".equals(vehicle.role) ? 0.0 : 1.0);

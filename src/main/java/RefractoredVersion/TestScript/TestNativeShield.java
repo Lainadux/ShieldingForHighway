@@ -9,7 +9,7 @@ public class TestNativeShield {
         config.setTestFunction(TestFunction.GEN_LOGS);
         config.setRealWorldEngineType(RealWorldEngineType.BRUTAL);
         config.setNumsOfSimulations(100);
-        config.setEgoType(EgoType.CascadedRecoExploreVehicle);
+        config.setEgoType(EgoType.ExploreFutureSlowerVehicle);
         config.setShieldType(ShieldType.STARK_NATIVE_RANDOM_IDM);
         config.setAiProfile(AIProfile.adversarial);
         config.setPATH_TO_SAVE("src/main/java/RefractoredVersion/logs/" + System.currentTimeMillis() + "/");

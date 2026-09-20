@@ -2,7 +2,7 @@ package RefractoredVersion.TestScript;
 
 
 import RefractoredVersion.Engine.JavaHighwayEngine;
-import RefractoredVersion.Engine.Vehicle;
+import RefractoredVersion.Engine.vehicle.Vehicle;
 import RefractoredVersion.Engine.VehicleGenerator;
 
 import java.util.ArrayList;

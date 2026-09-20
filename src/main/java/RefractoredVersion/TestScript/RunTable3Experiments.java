@@ -40,11 +40,11 @@ public class RunTable3Experiments {
 
                 new ExperimentSetting("No shield / base",
                         EgoType.NoShieldEgo,
-                        ShieldType.ALL_SLOWER,
+                        ShieldType.NONE,
                         AIProfile.base),
                 new ExperimentSetting("No shield / adversarial",
                         EgoType.NoShieldEgo,
-                        ShieldType.ALL_SLOWER,
+                        ShieldType.NONE,
                         AIProfile.adversarial),
                 new ExperimentSetting("ExploreFuture / adversarial",
                         EgoType.ExploreFutureEgo,

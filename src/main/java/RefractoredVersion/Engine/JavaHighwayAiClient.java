@@ -22,6 +22,9 @@
 
 package RefractoredVersion.Engine;
 
+import RefractoredVersion.Engine.ego.EgoVehicle;
+import RefractoredVersion.Engine.vehicle.Vehicle;
+
 import com.google.gson.Gson;
 
 import java.io.BufferedReader;

@@ -20,7 +20,11 @@
  * limitations under the License.
  */
 
-package RefractoredVersion.Engine;
+package RefractoredVersion.Engine.vehicle;
+
+import RefractoredVersion.Engine.JavaHighwayEngine;
+import RefractoredVersion.Engine.JavaHighwayEngineUtils;
+import RefractoredVersion.Engine.ego.EgoVehicle;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -64,7 +68,7 @@ public class Vehicle {
 
 
     // Debugging variables
-    boolean mobiling = false; //for debugging
+    public boolean mobiling = false; //for debugging
     public int[] possible_lanes = new int[]{0, 1, 2}; // for debugging
     public double karma_a_new = 0.0; // for debugging
     public Map<Integer, List<Double>> mobil = new HashMap<>(); // for debugging

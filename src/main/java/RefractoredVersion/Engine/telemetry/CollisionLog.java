@@ -1,4 +1,4 @@
-package RefractoredVersion.Engine;
+package RefractoredVersion.Engine.telemetry;
 
 public record CollisionLog(
         int step,

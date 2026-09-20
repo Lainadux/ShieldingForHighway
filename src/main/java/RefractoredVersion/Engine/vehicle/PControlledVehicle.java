@@ -20,20 +20,9 @@
  * limitations under the License.
  */
 
-package RefractoredVersion.Engine;
+package RefractoredVersion.Engine.vehicle;
 
-import java.util.concurrent.ThreadLocalRandom;
-
-public class RandomEgoVehicle extends Vehicle implements NonNpcVehicle, NotControlledByMOBIL, PControlledVehicle {
-
-    @Override
-    public void planAction() throws Exception {
-        if (this.getEngine().isDecisionTime()){
-            Action randomAction = Action.fromValue(ThreadLocalRandom.current().nextInt(5));
-            applyAction(randomAction);
-        }
-
-        this.plannedAcceleration = JavaHighwayEngineUtils.computeIdmAcceleration(this, this.getEngine().vehicles);
-        this.plannedSteering = JavaHighwayEngineUtils.computeSteering(this);
-    }
+public interface PControlledVehicle {
+    public int getTargetLaneIndex();
+    public void setTargetLaneIndex(int targetLaneIndex);
 }

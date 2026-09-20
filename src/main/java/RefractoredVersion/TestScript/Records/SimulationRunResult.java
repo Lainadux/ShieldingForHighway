@@ -1,8 +1,8 @@
 package RefractoredVersion.TestScript.Records;
 
-import RefractoredVersion.Engine.ActionAcceptanceLog;
-import RefractoredVersion.Engine.BeforeCrashActionLog;
-import RefractoredVersion.Engine.CollisionLog;
+import RefractoredVersion.Engine.telemetry.ActionAcceptanceLog;
+import RefractoredVersion.Engine.telemetry.BeforeCrashActionLog;
+import RefractoredVersion.Engine.telemetry.CollisionLog;
 
 import java.util.List;
 

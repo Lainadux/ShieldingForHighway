@@ -1,7 +1,7 @@
 package RefractoredVersion.TestScript.Records;
 
-import RefractoredVersion.Engine.BeforeCrashActionLog;
-import RefractoredVersion.Engine.CollisionLog;
+import RefractoredVersion.Engine.telemetry.BeforeCrashActionLog;
+import RefractoredVersion.Engine.telemetry.CollisionLog;
 import RefractoredVersion.TestScript.Records.SimulationRunResult;
 import RefractoredVersion.TestScript.Runner;
 

@@ -3,13 +3,13 @@ package RefractoredVersion.Shield;
 import RefractoredVersion.Engine.Action;
 import RefractoredVersion.Engine.JavaHighwayEngine;
 import RefractoredVersion.Engine.JavaHighwayEngineUtils;
-import RefractoredVersion.Engine.NonNpcVehicle;
-import RefractoredVersion.Engine.PControlledVehicle;
-import RefractoredVersion.Engine.Vehicle;
+import RefractoredVersion.Engine.vehicle.NonNpcVehicle;
+import RefractoredVersion.Engine.vehicle.PControlledVehicle;
+import RefractoredVersion.Engine.vehicle.Vehicle;
 
 import java.util.ArrayList;
 import java.util.List;
-@Deprecated
+
 public class ExploreFutureDelayedActionShield extends ExploreFutureActionShield {
     private  int delayStep = 1;
 

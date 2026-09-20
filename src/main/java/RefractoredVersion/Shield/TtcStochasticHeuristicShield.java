@@ -1,7 +1,7 @@
 package RefractoredVersion.Shield;
 
 import RefractoredVersion.Engine.Action;
-import RefractoredVersion.Engine.Vehicle;
+import RefractoredVersion.Engine.vehicle.Vehicle;
 import it.unicam.quasylab.jspear.controller.Controller;
 import it.unicam.quasylab.jspear.controller.ControllerRegistry;
 import it.unicam.quasylab.jspear.controller.ParallelController;

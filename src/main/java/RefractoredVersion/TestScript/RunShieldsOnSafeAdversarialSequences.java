@@ -24,7 +24,7 @@ public class RunShieldsOnSafeAdversarialSequences {
         try {
             JavaMomentumConfig noShieldConfig = config(
                     EgoType.NoShieldEgo,
-                    ShieldType.ALL_SLOWER
+                    ShieldType.NONE
             );
             List<String> safeInitialStates = collectSafeInitialStates(noShieldConfig, root);
 

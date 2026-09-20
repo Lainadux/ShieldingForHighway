@@ -1,4 +1,6 @@
-package RefractoredVersion.Engine;
+package RefractoredVersion.Engine.ego;
+
+import RefractoredVersion.Engine.JavaHighwayEngineUtils;
 
 /**
  * An ego vehicle that keeps its initial scalar speed and current lane.

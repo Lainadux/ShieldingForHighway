@@ -44,6 +44,6 @@ public enum VarTable {
     @Deprecated
     reactionDelay,
     historicalCutInIntent,
-    rssStabilityReference,
+    finalStabilityReference,
     role
 }

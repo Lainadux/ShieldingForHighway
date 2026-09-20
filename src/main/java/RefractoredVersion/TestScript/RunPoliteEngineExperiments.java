@@ -44,13 +44,13 @@ public class RunPoliteEngineExperiments {
                 new ExperimentSetting(
                         "No shield / base / polite real-world engine",
                         EgoType.NoShieldEgo,
-                        ShieldType.ALL_SLOWER,
+                        ShieldType.NONE,
                         AIProfile.base
                 ),
                 new ExperimentSetting(
                         "No shield / adversarial / polite real-world engine",
                         EgoType.NoShieldEgo,
-                        ShieldType.ALL_SLOWER,
+                        ShieldType.NONE,
                         AIProfile.adversarial
                 ),
                 new ExperimentSetting(

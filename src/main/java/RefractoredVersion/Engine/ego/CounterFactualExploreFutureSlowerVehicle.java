@@ -1,4 +1,9 @@
-package RefractoredVersion.Engine;
+package RefractoredVersion.Engine.ego;
+
+import RefractoredVersion.Engine.Action;
+import RefractoredVersion.Engine.telemetry.CounterFactualReplayLog;
+import RefractoredVersion.Engine.JavaHighwayAiClient;
+import RefractoredVersion.Engine.vehicle.Vehicle;
 
 import java.util.ArrayList;
 import java.util.HashMap;

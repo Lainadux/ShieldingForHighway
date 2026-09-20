@@ -20,9 +20,7 @@
  * limitations under the License.
  */
 
-package RefractoredVersion.Engine;
+package RefractoredVersion.Engine.vehicle;
 
-public interface PControlledVehicle {
-    public int getTargetLaneIndex();
-    public void setTargetLaneIndex(int targetLaneIndex);
+public interface NotControlledByMOBIL {
 }

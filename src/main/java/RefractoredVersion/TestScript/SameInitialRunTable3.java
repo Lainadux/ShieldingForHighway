@@ -2,18 +2,17 @@ package RefractoredVersion.TestScript;
 
 import RefractoredVersion.Engine.AIProfile;
 import RefractoredVersion.Engine.Action;
-import RefractoredVersion.Engine.ActionAcceptanceLog;
-import RefractoredVersion.Engine.BeforeCrashActionLog;
-import RefractoredVersion.Engine.CascadedRecoExploreVehicle;
-import RefractoredVersion.Engine.CollisionLog;
-import RefractoredVersion.Engine.EgoVehicle;
-import RefractoredVersion.Engine.ExploreFutureEgo;
-import RefractoredVersion.Engine.ExploreFutureSlowerVehicle;
+import RefractoredVersion.Engine.telemetry.ActionAcceptanceLog;
+import RefractoredVersion.Engine.telemetry.BeforeCrashActionLog;
+import RefractoredVersion.Engine.telemetry.CollisionLog;
+import RefractoredVersion.Engine.ego.EgoVehicle;
+import RefractoredVersion.Engine.ego.ExploreFutureEgo;
+import RefractoredVersion.Engine.ego.ExploreFutureSlowerVehicle;
 import RefractoredVersion.Engine.GentleNpcHighwayEngine;
 import RefractoredVersion.Engine.JavaHighwayAiClient;
 import RefractoredVersion.Engine.JavaHighwayEngine;
-import RefractoredVersion.Engine.NoShieldEgo;
-import RefractoredVersion.Engine.Vehicle;
+import RefractoredVersion.Engine.ego.NoShieldEgo;
+import RefractoredVersion.Engine.vehicle.Vehicle;
 import RefractoredVersion.Engine.VehicleGenerator;
 import RefractoredVersion.TestScript.Config.EgoType;
 import RefractoredVersion.TestScript.Config.JavaMomentumConfig;
@@ -62,10 +61,6 @@ public class SameInitialRunTable3 {
                         EgoType.ExploreFutureEgo,
                         ShieldType.STARK_NATIVE_RANDOM_IDM,
                         AIProfile.adversarial),
-                new ExperimentSetting("Cascade / adversarial",
-                        EgoType.CascadedRecoExploreVehicle,
-                        ShieldType.STARK_NATIVE_RANDOM_IDM,
-                        AIProfile.adversarial),
                 new ExperimentSetting("Reco shield / base",
                         EgoType.ExploreFutureSlowerVehicle,
                         ShieldType.STARK_NATIVE_RANDOM_IDM,
@@ -78,11 +73,11 @@ public class SameInitialRunTable3 {
 
                 new ExperimentSetting("No shield / base",
                         EgoType.NoShieldEgo,
-                        ShieldType.ALL_SLOWER,
+                        ShieldType.NONE,
                         AIProfile.base),
                 new ExperimentSetting("No shield / adversarial",
                         EgoType.NoShieldEgo,
-                        ShieldType.ALL_SLOWER,
+                        ShieldType.NONE,
                         AIProfile.adversarial)
 
         );
@@ -286,7 +281,6 @@ public class SameInitialRunTable3 {
             case EgoVehicle -> new EgoVehicle();
             case ExploreFutureSlowerVehicle -> new ExploreFutureSlowerVehicle();
             case ExploreFutureEgo -> new ExploreFutureEgo();
-            case CascadedRecoExploreVehicle -> new CascadedRecoExploreVehicle();
             case NoShieldEgo -> new NoShieldEgo();
             default -> throw new IllegalArgumentException(
                     "SameInitialRunTable3 does not support ego type: " + config.getEgoType());

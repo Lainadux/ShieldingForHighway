@@ -25,30 +25,20 @@ package RefractoredVersion.TestScript;
 import RefractoredVersion.Engine.JavaHighwayEngine;
 import RefractoredVersion.Engine.JavaHighwayAiClient;
 import RefractoredVersion.Engine.Action;
-import RefractoredVersion.Engine.ActionAcceptanceLog;
+import RefractoredVersion.Engine.telemetry.ActionAcceptanceLog;
 import RefractoredVersion.Engine.AIProfile;
-import RefractoredVersion.Engine.AlwaysFasterVehicle;
-import RefractoredVersion.Engine.BeforeCrashActionLog;
-import RefractoredVersion.Engine.CascadedRecoExploreVehicle;
-import RefractoredVersion.Engine.CollisionLog;
-import RefractoredVersion.Engine.ConstantSpeedEgoVehicle;
-import RefractoredVersion.Engine.EgoDelayedVehicle;
-import RefractoredVersion.Engine.EgoRandomEnableShield;
-import RefractoredVersion.Engine.EgoRandomFallback;
-import RefractoredVersion.Engine.EgoVehicle;
-import RefractoredVersion.Engine.ExploreFutureDelayedVehicle;
-import RefractoredVersion.Engine.ExploreFutureEgo;
-import RefractoredVersion.Engine.ExploreFutureSlowerVehicle;
-import RefractoredVersion.Engine.ExploreFutureWithIdleSlowerFallback;
-import RefractoredVersion.Engine.ExploreFutureWithoutCachingFallback;
+import RefractoredVersion.Engine.telemetry.BeforeCrashActionLog;
+import RefractoredVersion.Engine.telemetry.CollisionLog;
+import RefractoredVersion.Engine.ego.ConstantSpeedEgoVehicle;
+import RefractoredVersion.Engine.ego.EgoRandomEnableShield;
+import RefractoredVersion.Engine.ego.EgoVehicle;
+import RefractoredVersion.Engine.ego.ExploreFutureDelayedVehicle;
+import RefractoredVersion.Engine.ego.ExploreFutureEgo;
+import RefractoredVersion.Engine.ego.ExploreFutureSlowerVehicle;
 import RefractoredVersion.Engine.GentleNpcHighwayEngine;
-import RefractoredVersion.Engine.NoShieldEgo;
-import RefractoredVersion.Engine.PeriodicInterventionEgoVehicle;
-import RefractoredVersion.Engine.RandomEgoVehicle;
-import RefractoredVersion.Engine.RssStrictEgoVehicle;
-import RefractoredVersion.Engine.RssSoftEgoVehicle;
-import RefractoredVersion.Engine.SlowerAndMinimalTrajectoryVehicle;
-import RefractoredVersion.Engine.Vehicle;
+import RefractoredVersion.Engine.ego.NoShieldEgo;
+import RefractoredVersion.Engine.ego.PeriodicInterventionEgoVehicle;
+import RefractoredVersion.Engine.vehicle.Vehicle;
 import RefractoredVersion.Engine.VehicleGenerator;
 import RefractoredVersion.TestScript.Config.Config;
 import RefractoredVersion.TestScript.Config.EgoType;
@@ -306,7 +296,7 @@ public class Runner {
     }
 
     private Vehicle createRecoveredEgoVehicle(JavaMomentumConfig config) {
-        EgoType egoType = config.getEgoType() == null ? EgoType.RandomEgoVehicle : config.getEgoType();
+        EgoType egoType = config.getEgoType() == null ? EgoType.EgoVehicle : config.getEgoType();
         switch (egoType) {
             case ConstantSpeedEgoVehicle:
                 return configureRecoveredEgoVehicle(new ConstantSpeedEgoVehicle(), config);
@@ -326,46 +316,16 @@ public class Runner {
                 AIProfile periodicAiProfile = config.getAiProfile() == null ? AIProfile.base : config.getAiProfile();
                 periodicInterventionEgoVehicle.aiProfile = periodicAiProfile;
                 return configureRecoveredEgoVehicle(periodicInterventionEgoVehicle, config);
-            case EgoDelayedVehicle:
-                EgoDelayedVehicle egoDelayedVehicle = new EgoDelayedVehicle();
-                AIProfile egoDelayedAiProfile = config.getAiProfile() == null ? AIProfile.base : config.getAiProfile();
-                egoDelayedVehicle.aiProfile = egoDelayedAiProfile;
-                return configureRecoveredEgoVehicle(egoDelayedVehicle, config);
-            case AlwaysFasterVehicle:
-                AlwaysFasterVehicle alwaysFasterVehicle = new AlwaysFasterVehicle();
-                AIProfile alwaysFasterAiProfile = config.getAiProfile() == null ? AIProfile.base : config.getAiProfile();
-                alwaysFasterVehicle.aiProfile = alwaysFasterAiProfile;
-                return configureRecoveredEgoVehicle(alwaysFasterVehicle, config);
             case ExploreFutureEgo:
                 ExploreFutureEgo exploreFutureEgo = new ExploreFutureEgo();
                 AIProfile exploreFutureAiProfile = config.getAiProfile() == null ? AIProfile.base : config.getAiProfile();
                 exploreFutureEgo.aiProfile = exploreFutureAiProfile;
                 return configureRecoveredEgoVehicle(exploreFutureEgo, config);
-            case ExploreFutureWithoutCachingFallback:
-                ExploreFutureWithoutCachingFallback exploreFutureWithoutCachingFallback =
-                        new ExploreFutureWithoutCachingFallback();
-                AIProfile noCacheExploreFutureAiProfile =
-                        config.getAiProfile() == null ? AIProfile.base : config.getAiProfile();
-                exploreFutureWithoutCachingFallback.aiProfile = noCacheExploreFutureAiProfile;
-                return configureRecoveredEgoVehicle(exploreFutureWithoutCachingFallback, config);
-            case ExploreFutureWithIdleSlowerFallback:
-                ExploreFutureWithIdleSlowerFallback exploreFutureWithIdleSlowerFallback =
-                        new ExploreFutureWithIdleSlowerFallback();
-                AIProfile idleSlowerExploreFutureAiProfile =
-                        config.getAiProfile() == null ? AIProfile.base : config.getAiProfile();
-                exploreFutureWithIdleSlowerFallback.aiProfile = idleSlowerExploreFutureAiProfile;
-                return configureRecoveredEgoVehicle(exploreFutureWithIdleSlowerFallback, config);
             case ExploreFutureSlowerVehicle:
                 ExploreFutureSlowerVehicle exploreFutureSlowerVehicle = new ExploreFutureSlowerVehicle();
                 AIProfile exploreFutureSlowerAiProfile = config.getAiProfile() == null ? AIProfile.base : config.getAiProfile();
                 exploreFutureSlowerVehicle.aiProfile = exploreFutureSlowerAiProfile;
                 return configureRecoveredEgoVehicle(exploreFutureSlowerVehicle, config);
-            case CascadedRecoExploreVehicle:
-                CascadedRecoExploreVehicle cascadedRecoExploreVehicle = new CascadedRecoExploreVehicle();
-                AIProfile cascadedRecoExploreAiProfile =
-                        config.getAiProfile() == null ? AIProfile.base : config.getAiProfile();
-                cascadedRecoExploreVehicle.aiProfile = cascadedRecoExploreAiProfile;
-                return configureRecoveredEgoVehicle(cascadedRecoExploreVehicle, config);
             case EgoRandomEnableShield:
                 EgoRandomEnableShield egoRandomEnableShield =
                         new EgoRandomEnableShield(config.getRandomEnableShieldPercent());
@@ -373,39 +333,11 @@ public class Runner {
                         config.getAiProfile() == null ? AIProfile.base : config.getAiProfile();
                 egoRandomEnableShield.aiProfile = randomEnableShieldAiProfile;
                 return configureRecoveredEgoVehicle(egoRandomEnableShield, config);
-            case EgoRandomFallback:
-                EgoRandomFallback egoRandomFallback =
-                        new EgoRandomFallback(config.getRandomEnableShieldPercent());
-                AIProfile randomFallbackAiProfile =
-                        config.getAiProfile() == null ? AIProfile.base : config.getAiProfile();
-                egoRandomFallback.aiProfile = randomFallbackAiProfile;
-                return configureRecoveredEgoVehicle(egoRandomFallback, config);
-            case SlowerAndMinimalTrajectoryVehicle:
-                SlowerAndMinimalTrajectoryVehicle slowerAndMinimalTrajectoryVehicle =
-                        new SlowerAndMinimalTrajectoryVehicle();
-                AIProfile slowerAndMinimalTrajectoryAiProfile =
-                        config.getAiProfile() == null ? AIProfile.base : config.getAiProfile();
-                slowerAndMinimalTrajectoryVehicle.aiProfile = slowerAndMinimalTrajectoryAiProfile;
-                return configureRecoveredEgoVehicle(slowerAndMinimalTrajectoryVehicle, config);
-            case RssStrictEgoVehicle:
-                RssStrictEgoVehicle rssStrictEgoVehicle = new RssStrictEgoVehicle();
-                AIProfile rssStrictAiProfile =
-                        config.getAiProfile() == null ? AIProfile.base : config.getAiProfile();
-                rssStrictEgoVehicle.aiProfile = rssStrictAiProfile;
-                return configureRecoveredEgoVehicle(rssStrictEgoVehicle, config);
-            case RssSoftEgoVehicle:
-                RssSoftEgoVehicle rssSoftEgoVehicle = new RssSoftEgoVehicle();
-                AIProfile rssSoftAiProfile =
-                        config.getAiProfile() == null ? AIProfile.base : config.getAiProfile();
-                rssSoftEgoVehicle.aiProfile = rssSoftAiProfile;
-                return configureRecoveredEgoVehicle(rssSoftEgoVehicle, config);
             case ExploreFutureDelayedVehicle:
                 ExploreFutureDelayedVehicle exploreFutureDelayedVehicle = new ExploreFutureDelayedVehicle();
                 AIProfile exploreFutureDelayedAiProfile = config.getAiProfile() == null ? AIProfile.base : config.getAiProfile();
                 exploreFutureDelayedVehicle.aiProfile = exploreFutureDelayedAiProfile;
                 return configureRecoveredEgoVehicle(exploreFutureDelayedVehicle, config);
-            case RandomEgoVehicle:
-                return new RandomEgoVehicle();
             default:
                 throw new IllegalArgumentException("Unsupported recovered ego type: " + egoType);
         }

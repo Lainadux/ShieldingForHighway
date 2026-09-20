@@ -1,12 +1,12 @@
-package RefractoredVersion.Engine;
+package RefractoredVersion.Engine.ego;
 
-import RefractoredVersion.Shield.AllSlowerShield;
+import RefractoredVersion.Engine.Action;
+import RefractoredVersion.Engine.JavaHighwayAiClient;
+import RefractoredVersion.Engine.JavaHighwayEngineUtils;
+
 import RefractoredVersion.Shield.ExploreFutureActionShield;
-import RefractoredVersion.Shield.ExploreFutureActionSmarterShield;
 import RefractoredVersion.Shield.ExploreFutureBetterReferenceShield;
-import RefractoredVersion.Shield.ExploreFutureRssOShield;
-import RefractoredVersion.Shield.ExploreFutureRssShield;
-import RefractoredVersion.Shield.StarkNativeExploreFutureShield;
+import RefractoredVersion.Shield.StarkNativeShield;
 import RefractoredVersion.Shield.StarkNativeWithRandomIDM;
 import RefractoredVersion.TestScript.Config.JavaMomentumConfig;
 import RefractoredVersion.TestScript.Config.ShieldType;
@@ -69,13 +69,9 @@ public class ExploreFutureEgo extends EgoVehicle {
     protected ShieldDecision verifyActionSafe(Action action) throws Exception {
         JavaMomentumConfig config = this.getEngine().config;
         ShieldType shieldType = config == null || config.getShieldType() == null
-                ? ShieldType.ALL_SLOWER
+                ? ShieldType.STARK_NATIVE_RANDOM_IDM
                 : config.getShieldType();
         switch (shieldType) {
-            case ALL_SLOWER:
-                AllSlowerShield allSlowerShield = new AllSlowerShield(this.getEngine());
-                boolean allSlowerSafe = allSlowerShield.verifySafe(action);
-                return new ShieldDecision(allSlowerSafe, allSlowerShield.getUnsafeDiagnosis());
             case EXPLORE_FUTURE_ACTION:
 
                 ExploreFutureActionShield lastShield = null;
@@ -130,95 +126,13 @@ public class ExploreFutureEgo extends EgoVehicle {
                 return new ShieldDecision(false, lastBetterShield == null
                         ? lastBetterDiagnosis
                         : lastBetterShield.getUnsafeDiagnosis());
-            case EXPLORE_FUTURE_RSS_ACTION:
-                ExploreFutureRssShield lastRssShield = null;
-                String lastRssDiagnosis = "";
-                for(Action f:this.firstFallbackOrderedActionSet){
-                    List<Action> fallbackSequence = List.of(f);
-                    ExploreFutureRssShield rssShield = new ExploreFutureRssShield(this.getEngine(), fallbackSequence);
-                    List<DisTLFormula> exploreFutureCriteria = List.of(rssShield.evaluateCutIn());
-                    boolean rssSafe = rssShield.verifySafe(action, exploreFutureCriteria);
-                    if (shouldPrintDiagnostics()) {
-                        System.out.println("----------");
-                        System.out.printf("%s rss explore future shield: ai_action=%s, fallback_sequence=%s%n",
-                                rssSafe ? "Safe" : "Unsafe",
-                                action,
-                                fallbackSequence);
-                        System.out.println(rssShield.getUnsafeDiagnosis());
-                    }
-                    if(rssSafe){
-                        rebuildCachedActions(fallbackSequence);
-                        return new ShieldDecision(true, rssShield.getUnsafeDiagnosis());
-                    }
-                    lastRssShield = rssShield;
-                    lastRssDiagnosis = rssShield.getUnsafeDiagnosis();
-                }
-
-                return new ShieldDecision(false, lastRssShield == null
-                        ? lastRssDiagnosis
-                        : lastRssShield.getUnsafeDiagnosis());
-            case EXPLORE_FUTURE_RSS_O_ACTION:
-                ExploreFutureRssOShield lastRssOShield = null;
-                String lastRssODiagnosis = "";
-                for(Action f:this.firstFallbackOrderedActionSet){
-                    List<Action> fallbackSequence = List.of(f);
-                    ExploreFutureRssOShield rssOShield = new ExploreFutureRssOShield(this.getEngine(), fallbackSequence);
-                    List<DisTLFormula> exploreFutureCriteria = List.of(rssOShield.evaluateCutIn());
-                    boolean rssOSafe = rssOShield.verifySafe(action, exploreFutureCriteria);
-                    if (shouldPrintDiagnostics()) {
-                        System.out.println("----------");
-                        System.out.printf("%s original rss explore future shield: ai_action=%s, fallback_sequence=%s%n",
-                                rssOSafe ? "Safe" : "Unsafe",
-                                action,
-                                fallbackSequence);
-                        System.out.println(rssOShield.getUnsafeDiagnosis());
-                    }
-                    if(rssOSafe){
-                        rebuildCachedActions(fallbackSequence);
-                        return new ShieldDecision(true, rssOShield.getUnsafeDiagnosis());
-                    }
-                    lastRssOShield = rssOShield;
-                    lastRssODiagnosis = rssOShield.getUnsafeDiagnosis();
-                }
-
-                return new ShieldDecision(false, lastRssOShield == null
-                        ? lastRssODiagnosis
-                        : lastRssOShield.getUnsafeDiagnosis());
-            case EXPLORE_FUTURE_SMARTER_ACTION:
-                ExploreFutureActionSmarterShield lastSmarterShield = null;
-                String lastSmarterDiagnosis = "";
-                for(Action f:this.firstFallbackOrderedActionSet){
-                    List<Action> fallbackSequence = List.of(f);
-                    ExploreFutureActionSmarterShield exploreShield =
-                            new ExploreFutureActionSmarterShield(this.getEngine(), fallbackSequence);
-                    List<DisTLFormula> exploreFutureCriteria = List.of(exploreShield.evaluateCutIn());
-                    boolean exploreSafe = exploreShield.verifySafe(action, exploreFutureCriteria);
-                    if (shouldPrintDiagnostics()) {
-                        System.out.println("----------");
-                        System.out.printf("%s smarter explore future shield: ai_action=%s, fallback_sequence=%s%n",
-                                exploreSafe ? "Safe" : "Unsafe",
-                                action,
-                                fallbackSequence);
-                        System.out.println(exploreShield.getUnsafeDiagnosis());
-                    }
-                    if(exploreSafe){
-                        rebuildCachedActions(fallbackSequence);
-                        return new ShieldDecision(true, exploreShield.getUnsafeDiagnosis());
-                    }
-                    lastSmarterShield = exploreShield;
-                    lastSmarterDiagnosis = exploreShield.getUnsafeDiagnosis();
-                }
-
-                return new ShieldDecision(false, lastSmarterShield == null
-                        ? lastSmarterDiagnosis
-                        : lastSmarterShield.getUnsafeDiagnosis());
             case STARK_NATIVE:
-                StarkNativeExploreFutureShield lastNativeShield = null;
+                StarkNativeShield lastNativeShield = null;
                 String lastNativeDiagnosis = "";
                 for(Action f:this.firstFallbackOrderedActionSet){
                     List<Action> fallbackSequence = List.of(f);
-                    StarkNativeExploreFutureShield nativeShield =
-                            new StarkNativeExploreFutureShield(this.getEngine(), fallbackSequence);
+                    StarkNativeShield nativeShield =
+                            new StarkNativeShield(this.getEngine(), fallbackSequence);
                     List<DisTLFormula> exploreFutureCriteria = List.of(nativeShield.evaluateCutIn());
                     boolean nativeSafe = nativeShield.verifySafe(action, exploreFutureCriteria);
                     if (shouldPrintDiagnostics()) {

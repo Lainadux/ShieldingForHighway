@@ -1,4 +1,8 @@
-package RefractoredVersion.Engine;
+package RefractoredVersion.Engine.ego;
+
+import RefractoredVersion.Engine.Action;
+import RefractoredVersion.Engine.JavaHighwayAiClient;
+import RefractoredVersion.Engine.JavaHighwayEngineUtils;
 
 import RefractoredVersion.Shield.ExploreFutureActionShield;
 import RefractoredVersion.Shield.ExploreFutureDelayedActionShield;
@@ -87,7 +91,7 @@ public class ExploreFutureDelayedVehicle  extends ExploreFutureEgo{
     protected ShieldDecision verifyActionSafe(Action action) throws Exception {
         JavaMomentumConfig config = this.getEngine().config;
         ShieldType shieldType = config == null || config.getShieldType() == null
-                ? ShieldType.ALL_SLOWER
+                ? ShieldType.EXPLORE_FUTURE_DELAYED_ACTION
                 : config.getShieldType();
         if(shieldType != ShieldType.EXPLORE_FUTURE_DELAYED_ACTION){
             throw new IllegalArgumentException("Delayed vehicle using unsupported shield type: " + shieldType);

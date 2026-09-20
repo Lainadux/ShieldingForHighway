@@ -22,6 +22,9 @@
 
 package RefractoredVersion.Engine;
 
+import RefractoredVersion.Engine.vehicle.NonNpcVehicle;
+import RefractoredVersion.Engine.vehicle.Vehicle;
+
 public class SandboxJavaHighwayEngine extends JavaHighwayEngine {
     public boolean hasCollision = false;
     public boolean hasNpcCollision = false;

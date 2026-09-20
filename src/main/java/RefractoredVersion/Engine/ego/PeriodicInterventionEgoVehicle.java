@@ -1,4 +1,7 @@
-package RefractoredVersion.Engine;
+package RefractoredVersion.Engine.ego;
+
+import RefractoredVersion.Engine.Action;
+import RefractoredVersion.Engine.JavaHighwayEngineUtils;
 
 /**
  * Keeps the AI decision rate at 1 Hz while rechecking the current driving

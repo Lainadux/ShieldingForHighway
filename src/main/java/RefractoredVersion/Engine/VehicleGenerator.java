@@ -22,6 +22,16 @@
 
 package RefractoredVersion.Engine;
 
+import RefractoredVersion.Engine.ego.ConstantSpeedEgoVehicle;
+import RefractoredVersion.Engine.ego.CounterFactualExploreFutureSlowerVehicle;
+import RefractoredVersion.Engine.ego.EgoRandomEnableShield;
+import RefractoredVersion.Engine.ego.EgoVehicle;
+import RefractoredVersion.Engine.ego.ExploreFutureDelayedVehicle;
+import RefractoredVersion.Engine.ego.ExploreFutureEgo;
+import RefractoredVersion.Engine.ego.ExploreFutureSlowerVehicle;
+import RefractoredVersion.Engine.ego.NoShieldEgo;
+import RefractoredVersion.Engine.ego.PeriodicInterventionEgoVehicle;
+import RefractoredVersion.Engine.vehicle.Vehicle;
 import RefractoredVersion.TestScript.Config.EgoType;
 import RefractoredVersion.TestScript.Config.JavaMomentumConfig;
 import RefractoredVersion.TestScript.Config.MethodToGenInitialState;
@@ -183,10 +193,8 @@ public class VehicleGenerator {
 
     private static Vehicle createEgoVehicle(JavaMomentumConfig javaMomentumConfig) {
         EgoType egoType = javaMomentumConfig.getEgoType();
-        EgoType resolvedEgoType = egoType == null ? EgoType.RandomEgoVehicle : egoType;
+        EgoType resolvedEgoType = egoType == null ? EgoType.EgoVehicle : egoType;
         switch (resolvedEgoType) {
-            case RandomEgoVehicle:
-                return new RandomEgoVehicle();
             case ConstantSpeedEgoVehicle:
                 return configureEgoVehicle(new ConstantSpeedEgoVehicle(), javaMomentumConfig);
             case NoShieldEgo:
@@ -199,29 +207,12 @@ public class VehicleGenerator {
                 PeriodicInterventionEgoVehicle periodicInterventionEgoVehicle =
                         new PeriodicInterventionEgoVehicle();
                 return configureEgoVehicle(periodicInterventionEgoVehicle, javaMomentumConfig);
-            case EgoDelayedVehicle:
-                EgoDelayedVehicle egoDelayedVehicle = new EgoDelayedVehicle();
-                return configureEgoVehicle(egoDelayedVehicle, javaMomentumConfig);
-            case AlwaysFasterVehicle:
-                AlwaysFasterVehicle alwaysFasterVehicle = new AlwaysFasterVehicle();
-                return configureEgoVehicle(alwaysFasterVehicle, javaMomentumConfig);
             case ExploreFutureEgo:
                 ExploreFutureEgo exploreFutureEgo = new ExploreFutureEgo();
                 return configureEgoVehicle(exploreFutureEgo, javaMomentumConfig);
-            case ExploreFutureWithoutCachingFallback:
-                ExploreFutureWithoutCachingFallback exploreFutureWithoutCachingFallback =
-                        new ExploreFutureWithoutCachingFallback();
-                return configureEgoVehicle(exploreFutureWithoutCachingFallback, javaMomentumConfig);
-            case ExploreFutureWithIdleSlowerFallback:
-                ExploreFutureWithIdleSlowerFallback exploreFutureWithIdleSlowerFallback =
-                        new ExploreFutureWithIdleSlowerFallback();
-                return configureEgoVehicle(exploreFutureWithIdleSlowerFallback, javaMomentumConfig);
             case ExploreFutureSlowerVehicle:
                 ExploreFutureSlowerVehicle exploreFutureSlowerVehicle = new ExploreFutureSlowerVehicle();
                 return configureEgoVehicle(exploreFutureSlowerVehicle, javaMomentumConfig);
-            case CascadedRecoExploreVehicle:
-                CascadedRecoExploreVehicle cascadedRecoExploreVehicle = new CascadedRecoExploreVehicle();
-                return configureEgoVehicle(cascadedRecoExploreVehicle, javaMomentumConfig);
             case CounterFactualExploreFutureSlowerVehicle:
                 CounterFactualExploreFutureSlowerVehicle counterFactualExploreFutureSlowerVehicle =
                         new CounterFactualExploreFutureSlowerVehicle();
@@ -230,20 +221,6 @@ public class VehicleGenerator {
                 EgoRandomEnableShield egoRandomEnableShield =
                         new EgoRandomEnableShield(javaMomentumConfig.getRandomEnableShieldPercent());
                 return configureEgoVehicle(egoRandomEnableShield, javaMomentumConfig);
-            case EgoRandomFallback:
-                EgoRandomFallback egoRandomFallback =
-                        new EgoRandomFallback(javaMomentumConfig.getRandomEnableShieldPercent());
-                return configureEgoVehicle(egoRandomFallback, javaMomentumConfig);
-            case SlowerAndMinimalTrajectoryVehicle:
-                SlowerAndMinimalTrajectoryVehicle slowerAndMinimalTrajectoryVehicle =
-                        new SlowerAndMinimalTrajectoryVehicle();
-                return configureEgoVehicle(slowerAndMinimalTrajectoryVehicle, javaMomentumConfig);
-            case RssStrictEgoVehicle:
-                RssStrictEgoVehicle rssStrictEgoVehicle = new RssStrictEgoVehicle();
-                return configureEgoVehicle(rssStrictEgoVehicle, javaMomentumConfig);
-            case RssSoftEgoVehicle:
-                RssSoftEgoVehicle rssSoftEgoVehicle = new RssSoftEgoVehicle();
-                return configureEgoVehicle(rssSoftEgoVehicle, javaMomentumConfig);
             case ExploreFutureDelayedVehicle:
                 ExploreFutureDelayedVehicle exploreFutureDelayedVehicle = new ExploreFutureDelayedVehicle();
                 return configureEgoVehicle(exploreFutureDelayedVehicle, javaMomentumConfig);

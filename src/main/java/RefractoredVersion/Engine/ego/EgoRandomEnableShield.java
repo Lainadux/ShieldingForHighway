@@ -1,4 +1,7 @@
-package RefractoredVersion.Engine;
+package RefractoredVersion.Engine.ego;
+
+import RefractoredVersion.Engine.Action;
+import RefractoredVersion.Engine.JavaHighwayAiClient;
 
 import java.util.concurrent.ThreadLocalRandom;
 

@@ -36,8 +36,6 @@ public class TestScripts {
 
        //config.setShieldType(ShieldType.EXPLORE_FUTURE_DELAYED_ACTION);
        config.setShieldType(ShieldType.EXPLORE_FUTURE_ACTION);
-       config.setShieldType(ShieldType.EXPLORE_FUTURE_RSS_ACTION);
-       //config.setShieldType(ShieldType.EXPLORE_FUTURE_RSS_O_ACTION);
       config.setShieldType(ShieldType.EXPLORE_FUTURE_BETTER_REFERENCE_ACTION);
        //config.setFutureActions(List.of());
 
@@ -46,7 +44,6 @@ public class TestScripts {
 //       config.setRandomEnableShieldPercent(60);
 
        config.setEgoType(EgoType.ExploreFutureSlowerVehicle);
-        //config.setEgoType(EgoType.RssSoftEgoVehicle);
 
 //       //Ai- slower- slower
 //       config.setEgoType(EgoType.ExploreFutureSlowerVehicle);

@@ -1,6 +1,6 @@
 package RefractoredVersion.TestScript.Records;
 
-import RefractoredVersion.Engine.ActionAcceptanceLog;
+import RefractoredVersion.Engine.telemetry.ActionAcceptanceLog;
 
 import java.util.List;
 

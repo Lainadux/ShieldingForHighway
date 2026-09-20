@@ -2,7 +2,7 @@ package RefractoredVersion.Shield;
 
 import RefractoredVersion.Engine.Action;
 import RefractoredVersion.Engine.JavaHighwayEngine;
-import RefractoredVersion.Engine.Vehicle;
+import RefractoredVersion.Engine.vehicle.Vehicle;
 import it.unicam.quasylab.jspear.ds.DataState;
 import it.unicam.quasylab.jspear.ds.DataStateUpdate;
 import org.apache.commons.math3.random.RandomGenerator;
@@ -40,7 +40,7 @@ public class ExploreFutureBetterReferenceShield extends ExploreFutureActionShiel
 
         int frontIndex = getFrontVehicleIndexInLaneFromValues(values, egoIndex, egoLane);
         if (frontIndex >= 0) {
-            values.put(vehicleOffset(frontIndex) + VarTable.rssStabilityReference.ordinal(), 1.0);
+            values.put(vehicleOffset(frontIndex) + VarTable.finalStabilityReference.ordinal(), 1.0);
         }
 
         for (int i = 0; i < vehicleCount(); i++) {
@@ -53,7 +53,7 @@ public class ExploreFutureBetterReferenceShield extends ExploreFutureActionShiel
             if (lane != egoLane
                     && x > egoX
                     && hasHistoricalCutInIntentTowardEgoLane(values, i, egoLane)) {
-                values.put(offset + VarTable.rssStabilityReference.ordinal(), 1.0);
+                values.put(offset + VarTable.finalStabilityReference.ordinal(), 1.0);
             }
         }
     }
@@ -65,7 +65,7 @@ public class ExploreFutureBetterReferenceShield extends ExploreFutureActionShiel
             if (i == egoIndex) {
                 continue;
             }
-            if (state.get(vehicleOffset(i) + VarTable.rssStabilityReference.ordinal()) > 0.0) {
+            if (state.get(vehicleOffset(i) + VarTable.finalStabilityReference.ordinal()) > 0.0) {
                 referenceVehicles.add(i);
             }
         }

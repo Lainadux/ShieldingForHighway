@@ -20,17 +20,16 @@
  * limitations under the License.
  */
 
-package RefractoredVersion.Engine;
+package RefractoredVersion.Engine.ego;
 
-import RefractoredVersion.Shield.AllSlowerShield;
+import RefractoredVersion.Engine.*;
+import RefractoredVersion.Engine.telemetry.*;
+import RefractoredVersion.Engine.vehicle.*;
+
 import RefractoredVersion.Shield.ExploreFutureActionShield;
-import RefractoredVersion.Shield.ExploreFutureActionSmarterShield;
 import RefractoredVersion.Shield.ExploreFutureBetterReferenceShield;
-import RefractoredVersion.Shield.ExploreFutureRssOShield;
-import RefractoredVersion.Shield.ExploreFutureRssShield;
 import RefractoredVersion.Shield.HeuristicShield;
 import RefractoredVersion.Shield.Heuristic4HzShield;
-import RefractoredVersion.Shield.InstantHeuristicShield;
 import RefractoredVersion.Shield.Reco4HzShield;
 import RefractoredVersion.Shield.StarkNativeShield;
 import RefractoredVersion.Shield.StarkNativeWithRandomIDM;
@@ -201,13 +200,9 @@ public class EgoVehicle extends Vehicle implements NonNpcVehicle, NotControlledB
     protected ShieldDecision verifyActionSafe(Action action) throws Exception {
         JavaMomentumConfig config = this.getEngine().config;
         ShieldType shieldType = config == null || config.getShieldType() == null
-                ? ShieldType.ALL_SLOWER
+                ? ShieldType.HEURISTIC
                 : config.getShieldType();
         switch (shieldType) {
-            case ALL_SLOWER:
-                AllSlowerShield allSlowerShield = new AllSlowerShield(this.getEngine());
-                boolean allSlowerSafe = allSlowerShield.verifySafe(action);
-                return new ShieldDecision(allSlowerSafe, allSlowerShield.getUnsafeDiagnosis());
             case EXPLORE_FUTURE_ACTION:
                 ArrayList<Action> futureActions = config == null || config.getFutureActions() == null
                         ? new ArrayList<>()
@@ -224,22 +219,6 @@ public class EgoVehicle extends Vehicle implements NonNpcVehicle, NotControlledB
                         new ExploreFutureBetterReferenceShield(this.getEngine(), betterFutureActions);
                 boolean betterSafe = betterShield.verifySafe(action);
                 return new ShieldDecision(betterSafe, betterShield.getUnsafeDiagnosis());
-            case EXPLORE_FUTURE_RSS_ACTION:
-                ArrayList<Action> rssFutureActions = config == null || config.getFutureActions() == null
-                        ? new ArrayList<>()
-                        : new ArrayList<>(config.getFutureActions());
-                ExploreFutureRssShield rssShield =
-                        new ExploreFutureRssShield(this.getEngine(), rssFutureActions);
-                boolean rssSafe = rssShield.verifySafe(action);
-                return new ShieldDecision(rssSafe, rssShield.getUnsafeDiagnosis());
-            case EXPLORE_FUTURE_RSS_O_ACTION:
-                ArrayList<Action> rssOFutureActions = config == null || config.getFutureActions() == null
-                        ? new ArrayList<>()
-                        : new ArrayList<>(config.getFutureActions());
-                ExploreFutureRssOShield rssOShield =
-                        new ExploreFutureRssOShield(this.getEngine(), rssOFutureActions);
-                boolean rssOSafe = rssOShield.verifySafe(action);
-                return new ShieldDecision(rssOSafe, rssOShield.getUnsafeDiagnosis());
             case STARK_NATIVE:
                 StarkNativeShield starkNativeShield = new StarkNativeShield(this.getEngine());
                 boolean starkNativeSafe = starkNativeShield.verifySafe(action);
@@ -268,18 +247,6 @@ public class EgoVehicle extends Vehicle implements NonNpcVehicle, NotControlledB
                 Reco4HzShield reco4HzShield = new Reco4HzShield(this.getEngine());
                 boolean reco4HzSafe = reco4HzShield.verifySafe(action);
                 return shieldDecisionFrom(reco4HzSafe, reco4HzShield);
-            case INSTANT_HEURISTIC:
-                InstantHeuristicShield instantHeuristicShield = new InstantHeuristicShield(this.getDetectedVehicles(), action);
-                boolean instantHeuristicSafe = instantHeuristicShield.verifySafe();
-                return new ShieldDecision(instantHeuristicSafe, instantHeuristicShield.getDiagnosis());
-            case EXPLORE_FUTURE_SMARTER_ACTION:
-                ArrayList<Action> smarterFutureActions = config == null || config.getFutureActions() == null
-                        ? new ArrayList<>()
-                        : new ArrayList<>(config.getFutureActions());
-                ExploreFutureActionSmarterShield smarterShield =
-                        new ExploreFutureActionSmarterShield(this.getEngine(), smarterFutureActions);
-                boolean smarterSafe = smarterShield.verifySafe(action);
-                return new ShieldDecision(smarterSafe, smarterShield.getUnsafeDiagnosis());
             default:
                 throw new IllegalArgumentException("Unsupported shield type: " + shieldType);
         }
@@ -319,20 +286,6 @@ public class EgoVehicle extends Vehicle implements NonNpcVehicle, NotControlledB
             this.lowSpeedLaneChangeRobustness = lowSpeedLaneChangeRobustness;
             this.shieldRobustness = shieldRobustness;
         }
-    }
-
-    protected ShieldDecision shieldDecisionFrom(boolean safe, AllSlowerShield shield) {
-        return new ShieldDecision(
-                safe,
-                shield.getUnsafeDiagnosis(),
-                shield.getFailedSafetyCriteriaCsv(),
-                shield.getLastCollisionRobustness(),
-                shield.getLastFirstSecondSafetyRobustness(),
-                shield.getLastStabilityRobustness(),
-                shield.getLastChangeLaneRearThreatRobustness(),
-                shield.getLastChangeLaneLowSpeedRobustness(),
-                shield.getLastShieldRobustness()
-        );
     }
 
     protected ShieldDecision shieldDecisionFrom(boolean safe, ExploreFutureActionShield shield) {

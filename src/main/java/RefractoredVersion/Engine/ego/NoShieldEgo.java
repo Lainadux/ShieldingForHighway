@@ -1,4 +1,6 @@
-package RefractoredVersion.Engine;
+package RefractoredVersion.Engine.ego;
+
+import RefractoredVersion.Engine.Action;
 
 public class NoShieldEgo extends EgoVehicle {
     @Override

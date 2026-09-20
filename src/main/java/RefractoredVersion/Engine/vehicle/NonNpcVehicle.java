@@ -20,7 +20,9 @@
  * limitations under the License.
  */
 
-package RefractoredVersion.Engine;
+package RefractoredVersion.Engine.vehicle;
+
+import RefractoredVersion.Engine.Action;
 
 public interface NonNpcVehicle {
     void planAction() throws Exception;

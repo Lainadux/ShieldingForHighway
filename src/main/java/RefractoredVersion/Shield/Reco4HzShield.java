@@ -3,8 +3,8 @@ package RefractoredVersion.Shield;
 import RefractoredVersion.Engine.Action;
 import RefractoredVersion.Engine.JavaHighwayEngine;
 import RefractoredVersion.Engine.JavaHighwayEngineUtils;
-import RefractoredVersion.Engine.NonNpcVehicle;
-import RefractoredVersion.Engine.Vehicle;
+import RefractoredVersion.Engine.vehicle.NonNpcVehicle;
+import RefractoredVersion.Engine.vehicle.Vehicle;
 import it.unicam.quasylab.jspear.distl.AlwaysDisTLFormula;
 import it.unicam.quasylab.jspear.distl.ConjunctionDisTLFormula;
 import it.unicam.quasylab.jspear.distl.DisTLFormula;
@@ -18,9 +18,25 @@ import java.util.List;
 import java.util.concurrent.atomic.LongAdder;
 
 /**
- * Recoverability shield for a 4 Hz decision process. NPC vehicles retain their
- * initial target lanes while their longitudinal accelerations follow the same
- * bounded model used by the heuristic shield.
+ * Implements the recoverability-based shield used for periodic 4 Hz
+ * intervention.
+ *
+ * <p>The AI continues to produce a new high-level action once per second,
+ * while the shield may evaluate the current driving intention every
+ * 0.25 seconds. Internally, each action in the candidate-and-recovery
+ * sequence produces one prediction transition of 0.25 seconds.</p>
+ *
+ * <p>During prediction, NPC vehicles retain their initial target lanes.
+ * Their longitudinal accelerations are sampled uniformly from
+ * [-1, 1] m/s^2 at every prediction step, while the low-level kinematic
+ * model propagates all vehicle states.</p>
+ *
+ * <p>The predicted evolution is evaluated using the recoverability-based
+ * DisTL requirements inherited from the Reco shield. These requirements
+ * check collision avoidance throughout the prediction horizon, front
+ * safety after the candidate action, recoverability at the final state,
+ * and the additional lane-change safety conditions. The evaluated action
+ * is accepted only when the conjunction has sufficient robustness.</p>
  */
 public class Reco4HzShield extends StarkNativeShield {
     private static final int PREDICTION_FREQUENCY_HZ = 4;

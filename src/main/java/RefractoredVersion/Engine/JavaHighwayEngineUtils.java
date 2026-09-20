@@ -22,6 +22,10 @@
 
 package RefractoredVersion.Engine;
 
+import RefractoredVersion.Engine.vehicle.NonNpcVehicle;
+import RefractoredVersion.Engine.vehicle.PControlledVehicle;
+import RefractoredVersion.Engine.vehicle.Vehicle;
+
 import org.apache.commons.math3.random.RandomGenerator;
 
 import java.util.ArrayList;

@@ -1,12 +1,12 @@
 package RefractoredVersion.Shield;
 
 import RefractoredVersion.Engine.Action;
-import RefractoredVersion.Engine.EgoVehicle;
+import RefractoredVersion.Engine.ego.EgoVehicle;
 import RefractoredVersion.Engine.JavaHighwayEngine;
 import RefractoredVersion.Engine.JavaHighwayEngineUtils;
-import RefractoredVersion.Engine.NonNpcVehicle;
-import RefractoredVersion.Engine.PControlledVehicle;
-import RefractoredVersion.Engine.Vehicle;
+import RefractoredVersion.Engine.vehicle.NonNpcVehicle;
+import RefractoredVersion.Engine.vehicle.PControlledVehicle;
+import RefractoredVersion.Engine.vehicle.Vehicle;
 import RefractoredVersion.TestScript.Config.JavaMomentumConfig;
 import RefractoredVersion.TestScript.Config.SandboxNpcPolitenessMode;
 import it.unicam.quasylab.jspear.ControlledSystem;
@@ -41,7 +41,7 @@ public class StarkNativeShield extends ExploreFutureBetterReferenceShield {
         this(sourceEngine, AI_SLOWER_SLOWER);
     }
 
-    protected StarkNativeShield(JavaHighwayEngine sourceEngine, List<Action> futureActions) {
+    public StarkNativeShield(JavaHighwayEngine sourceEngine, List<Action> futureActions) {
         super(sourceEngine, futureActions);
         if (futureActions == null) {
             throw new IllegalArgumentException("futureActions cannot be null.");
@@ -351,7 +351,7 @@ public class StarkNativeShield extends ExploreFutureBetterReferenceShield {
             case role -> "EGO".equals(vehicle.role) ? 0.0 : 1.0;
             case targetSpeed -> vehicle.targetSpeed;
             case idmCooldownTimer, idmActionStepLength, reactionDelay -> 0.0;
-            case historicalCutInIntent, rssStabilityReference -> 0.0;
+            case historicalCutInIntent, finalStabilityReference -> 0.0;
         };
     }
 
@@ -426,7 +426,7 @@ public class StarkNativeShield extends ExploreFutureBetterReferenceShield {
                     historicalCutInIntent != null
                             && i < historicalCutInIntent.length
                             && historicalCutInIntent[i] ? 1.0 : 0.0);
-            values.put(offset + VarTable.rssStabilityReference.ordinal(), 0.0);
+            values.put(offset + VarTable.finalStabilityReference.ordinal(), 0.0);
         }
         populateSubclassVehicleValues(values, vehicles, historicalCutInIntent, initialIntention);
 

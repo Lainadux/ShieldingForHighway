@@ -1,12 +1,12 @@
 package RefractoredVersion.TestScript.Execution;
 
 
-import RefractoredVersion.Engine.ActionAcceptanceLog;
-import RefractoredVersion.Engine.BeforeCrashActionLog;
-import RefractoredVersion.Engine.CollisionLog;
-import RefractoredVersion.Engine.EgoVehicle;
+import RefractoredVersion.Engine.telemetry.ActionAcceptanceLog;
+import RefractoredVersion.Engine.telemetry.BeforeCrashActionLog;
+import RefractoredVersion.Engine.telemetry.CollisionLog;
+import RefractoredVersion.Engine.ego.EgoVehicle;
 import RefractoredVersion.Engine.JavaHighwayEngine;
-import RefractoredVersion.Engine.Vehicle;
+import RefractoredVersion.Engine.vehicle.Vehicle;
 import RefractoredVersion.Engine.VehicleGenerator;
 import RefractoredVersion.TestScript.Config.JavaMomentumConfig;
 import RefractoredVersion.TestScript.Records.SimulationRunResult;

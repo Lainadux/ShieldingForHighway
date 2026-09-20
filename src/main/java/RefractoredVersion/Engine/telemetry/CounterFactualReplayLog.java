@@ -1,4 +1,7 @@
-package RefractoredVersion.Engine;
+package RefractoredVersion.Engine.telemetry;
+
+import RefractoredVersion.Engine.Action;
+import RefractoredVersion.Engine.vehicle.Vehicle;
 
 import java.util.List;
 

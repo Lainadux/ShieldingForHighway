@@ -22,6 +22,8 @@
 
 package RefractoredVersion.Engine;
 
+import RefractoredVersion.Engine.vehicle.NonNpcVehicle;
+import RefractoredVersion.Engine.vehicle.Vehicle;
 import RefractoredVersion.TestScript.Config.JavaMomentumConfig;
 import lombok.Getter;
 
