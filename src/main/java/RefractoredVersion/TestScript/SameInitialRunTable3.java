@@ -110,6 +110,37 @@ public class SameInitialRunTable3 {
         }
     }
 
+    static String generateInitialStateJson(JavaMomentumConfig config) {
+        return GSON.toJson(VehicleGenerator.generateVehicles(config));
+    }
+
+    static Double safeFinalEgoX(JavaMomentumConfig config, String initialStateJson) {
+        SimulationResult result = runSimulation(config, initialStateJson);
+        return result.crashed ? null : result.finalEgoX;
+    }
+
+    static void runAndReport(String name, JavaMomentumConfig config,
+                             List<String> initialStates, Path groupDir) {
+        ExperimentSummary summary = runGroup(config, initialStates, groupDir);
+        System.out.printf(
+                "Finished %s: runs=%d crashed=%d crash=%.2f%% rejected=%.2f%% meanX=%s%n",
+                name,
+                summary.completedRuns,
+                summary.crashedRuns,
+                summary.crashPercent,
+                summary.rejectedAiDecisionPercent,
+                summary.averageFinalEgoX == null ? "NaN" : String.format("%.2f", summary.averageFinalEgoX)
+        );
+    }
+
+    static JavaMomentumConfig defaultExperimentConfig() {
+        return baseConfig();
+    }
+
+    static void saveJson(Path path, String json) {
+        writeJson(path, json);
+    }
+
     private static List<String> generateInitialStates(Path initialStateDir) {
         System.out.println("Generating shared initial states: " + initialStateDir.toAbsolutePath());
         try {
@@ -619,6 +650,7 @@ public class SameInitialRunTable3 {
         private final List<String> futureActions;
         private final double minX;
         private final double maxX;
+        private final double vehicleSpacing;
 
         private RunMetadata(JavaMomentumConfig config) {
             this.egoType = config.getEgoType().name();
@@ -641,6 +673,7 @@ public class SameInitialRunTable3 {
             this.futureActions = config.getFutureActions().stream().map(Action::name).toList();
             this.minX = config.getMinX();
             this.maxX = config.getMaxX();
+            this.vehicleSpacing = config.getVehicleSpacing();
         }
     }
 }

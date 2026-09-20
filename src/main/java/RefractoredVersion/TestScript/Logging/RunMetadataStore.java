@@ -115,6 +115,8 @@ public class RunMetadataStore {
         private Boolean randomizeNpcPoliteness;
         private String sandboxNpcPolitenessMode;
         private Boolean egoSpawnInMiddle;
+        private Double initialEgoSpeed;
+        private Double vehicleSpacing;
         private List<String> futureActions;
         private Double minX;
         private Double maxX;
@@ -142,6 +144,8 @@ public class RunMetadataStore {
                     ? null
                     : config.getSandboxNpcPolitenessMode().name();
             this.egoSpawnInMiddle = config.isEgoSpawnInMiddle();
+            this.initialEgoSpeed = config.getInitialEgoSpeed();
+            this.vehicleSpacing = config.getVehicleSpacing();
             this.futureActions = config.getFutureActions() == null
                     ? null
                     : config.getFutureActions().stream().map(Action::name).toList();
@@ -203,6 +207,12 @@ public class RunMetadataStore {
             }
             if (egoSpawnInMiddle != null) {
                 config.setEgoSpawnInMiddle(egoSpawnInMiddle);
+            }
+            if (initialEgoSpeed != null) {
+                config.setInitialEgoSpeed(initialEgoSpeed);
+            }
+            if (vehicleSpacing != null) {
+                config.setVehicleSpacing(vehicleSpacing);
             }
             if (futureActions != null) {
                 config.setFutureActions(futureActions.stream().map(Action::valueOf).toList());

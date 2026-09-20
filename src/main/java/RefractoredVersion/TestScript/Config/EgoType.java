@@ -24,6 +24,7 @@ package RefractoredVersion.TestScript.Config;
 
 public enum EgoType {
     RandomEgoVehicle,
+    ConstantSpeedEgoVehicle,
     NoShieldEgo,
     EgoVehicle,
     PeriodicInterventionEgoVehicle,

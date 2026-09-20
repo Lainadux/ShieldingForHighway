@@ -31,6 +31,7 @@ import RefractoredVersion.Engine.AlwaysFasterVehicle;
 import RefractoredVersion.Engine.BeforeCrashActionLog;
 import RefractoredVersion.Engine.CascadedRecoExploreVehicle;
 import RefractoredVersion.Engine.CollisionLog;
+import RefractoredVersion.Engine.ConstantSpeedEgoVehicle;
 import RefractoredVersion.Engine.EgoDelayedVehicle;
 import RefractoredVersion.Engine.EgoRandomEnableShield;
 import RefractoredVersion.Engine.EgoRandomFallback;
@@ -307,6 +308,8 @@ public class Runner {
     private Vehicle createRecoveredEgoVehicle(JavaMomentumConfig config) {
         EgoType egoType = config.getEgoType() == null ? EgoType.RandomEgoVehicle : config.getEgoType();
         switch (egoType) {
+            case ConstantSpeedEgoVehicle:
+                return configureRecoveredEgoVehicle(new ConstantSpeedEgoVehicle(), config);
             case NoShieldEgo:
                 NoShieldEgo noShieldEgo = new NoShieldEgo();
                 AIProfile noShieldAiProfile = config.getAiProfile() == null ? AIProfile.base : config.getAiProfile();
@@ -829,6 +832,8 @@ public class Runner {
         private Boolean randomizeNpcPoliteness;
         private String sandboxNpcPolitenessMode;
         private Boolean egoSpawnInMiddle;
+        private Double initialEgoSpeed;
+        private Double vehicleSpacing;
         private List<String> futureActions;
         private Double minX;
         private Double maxX;
@@ -856,6 +861,8 @@ public class Runner {
                     ? null
                     : config.getSandboxNpcPolitenessMode().name();
             this.egoSpawnInMiddle = config.isEgoSpawnInMiddle();
+            this.initialEgoSpeed = config.getInitialEgoSpeed();
+            this.vehicleSpacing = config.getVehicleSpacing();
             this.futureActions = config.getFutureActions() == null
                     ? null
                     : config.getFutureActions().stream().map(Action::name).toList();
@@ -917,6 +924,12 @@ public class Runner {
             }
             if (egoSpawnInMiddle != null) {
                 config.setEgoSpawnInMiddle(egoSpawnInMiddle);
+            }
+            if (initialEgoSpeed != null) {
+                config.setInitialEgoSpeed(initialEgoSpeed);
+            }
+            if (vehicleSpacing != null) {
+                config.setVehicleSpacing(vehicleSpacing);
             }
             if (futureActions != null) {
                 config.setFutureActions(futureActions.stream().map(Action::valueOf).toList());

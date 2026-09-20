@@ -55,6 +55,8 @@ public class JavaMomentumConfig extends Config {
     private SandboxNpcPolitenessMode sandboxNpcPolitenessMode = SandboxNpcPolitenessMode.COPY_REAL;
     private RealWorldEngineType realWorldEngineType = RealWorldEngineType.BRUTAL;
     private boolean egoSpawnInMiddle = false;
+    private double initialEgoSpeed = 25.0;
+    private double vehicleSpacing = 1.0;
     @Deprecated
     private List<Action> futureActions = new ArrayList<>();
     @Deprecated
@@ -154,6 +156,20 @@ public class JavaMomentumConfig extends Config {
             throw new IllegalArgumentException("realWorldEngineType cannot be null.");
         }
         this.realWorldEngineType = realWorldEngineType;
+    }
+
+    public void setInitialEgoSpeed(double initialEgoSpeed) {
+        if (!Double.isFinite(initialEgoSpeed) || initialEgoSpeed < 0.0) {
+            throw new IllegalArgumentException("initialEgoSpeed must be a finite non-negative value.");
+        }
+        this.initialEgoSpeed = initialEgoSpeed;
+    }
+
+    public void setVehicleSpacing(double vehicleSpacing) {
+        if (!Double.isFinite(vehicleSpacing) || vehicleSpacing <= 0.0) {
+            throw new IllegalArgumentException("vehicleSpacing must be a finite positive value.");
+        }
+        this.vehicleSpacing = vehicleSpacing;
     }
 
 }

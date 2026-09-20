@@ -45,6 +45,7 @@ public class VehicleGenerator {
     private static final double SPAWN_FRONT_MAX_BRAKE = 5.0;
     private static final double NPC_INITIAL_SPEED_MIN = 21.0;
     private static final double NPC_INITIAL_SPEED_MAX = 24.0;
+    private static final double DEFAULT_VEHICLE_SPACING = 1.0;
 
     public static ArrayList<Vehicle> generateVehicles(JavaMomentumConfig javaMomentumConfig) {
         MethodToGenInitialState method = javaMomentumConfig.getMethodToGenInitialState();
@@ -74,7 +75,7 @@ public class VehicleGenerator {
             vehicle.setTargetLaneIndex(lane);
             vehicle.cooldownTimer = rand.nextDouble();
             vehicle.speed = sampleNpcInitialSpeed(rand);
-            vehicle.x = nextPythonStyleNpcX(vehicles, rand, vehicle.speed);
+            vehicle.x = nextPythonStyleNpcX(vehicles, rand, vehicle.speed, DEFAULT_VEHICLE_SPACING);
             vehicle.vx = vehicle.speed;
             vehicle.vy = 0.0;
             vehicle.targetSpeed = vehicle.speed;
@@ -118,7 +119,8 @@ public class VehicleGenerator {
             boolean isEgo;
             if (egoSpawnInMiddle) {
                 candidateNpcSpeed = sampleNpcInitialSpeed(rand);
-                candidateNpcX = nextPythonStyleNpcX(vehicles, rand, candidateNpcSpeed);
+                candidateNpcX = nextPythonStyleNpcX(
+                        vehicles, rand, candidateNpcSpeed, javaMomentumConfig.getVehicleSpacing());
                 isEgo = !egoSpawned && candidateNpcX >= egoMiddleX;
             }
             else {
@@ -127,7 +129,8 @@ public class VehicleGenerator {
 
             if (!isEgo && Double.isNaN(candidateNpcSpeed)) {
                 candidateNpcSpeed = sampleNpcInitialSpeed(rand);
-                candidateNpcX = nextPythonStyleNpcX(vehicles, rand, candidateNpcSpeed);
+                candidateNpcX = nextPythonStyleNpcX(
+                        vehicles, rand, candidateNpcSpeed, javaMomentumConfig.getVehicleSpacing());
             }
             Vehicle vehicle = isEgo ? createEgoVehicle(javaMomentumConfig) : new Vehicle();
             vehicle.role = isEgo ? "EGO" : "NPC";
@@ -137,7 +140,9 @@ public class VehicleGenerator {
             vehicle.setTargetLaneIndex(lane);
             vehicle.cooldownTimer = rand.nextDouble();
 
-            vehicle.speed = isEgo ? 25.0 : candidateNpcSpeed;
+            vehicle.speed = isEgo
+                    ? javaMomentumConfig.getInitialEgoSpeed()
+                    : candidateNpcSpeed;
             if (isEgo && spawned == 0) {
                 vehicle.x = minX;
             }
@@ -182,6 +187,8 @@ public class VehicleGenerator {
         switch (resolvedEgoType) {
             case RandomEgoVehicle:
                 return new RandomEgoVehicle();
+            case ConstantSpeedEgoVehicle:
+                return configureEgoVehicle(new ConstantSpeedEgoVehicle(), javaMomentumConfig);
             case NoShieldEgo:
                 NoShieldEgo noShieldEgo = new NoShieldEgo();
                 return configureEgoVehicle(noShieldEgo, javaMomentumConfig);
@@ -252,9 +259,10 @@ public class VehicleGenerator {
         return egoVehicle;
     }
 
-    private static double nextPythonStyleNpcX(ArrayList<Vehicle> vehicles, Random rand, double speed) {
+    private static double nextPythonStyleNpcX(ArrayList<Vehicle> vehicles, Random rand,
+                                               double speed, double spacing) {
         double defaultSpacing = 12.0 + speed;
-        double offset = defaultSpacing * Math.exp(-5.0 / 40.0 * DEFAULT_NUM_LANES);
+        double offset = spacing * defaultSpacing * Math.exp(-5.0 / 40.0 * DEFAULT_NUM_LANES);
         double x0 = vehicles.isEmpty() ? 3.0 * offset : maxVehicleX(vehicles);
         return x0 + offset * (0.9 + 0.2 * rand.nextDouble());
     }
