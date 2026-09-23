@@ -154,9 +154,11 @@ public class StarkNativeShield extends ExploreFutureBetterReferenceShield {
                 noCollision,
                 new ConjunctionDisTLFormula(safeFrontDistanceAtFirstSecond, stableAtLastStep)
         );
-        DisTLFormula rearThreatCondition = changeLaneRearThreatAtDecisionStep;
+        // The horizon-wide cut-in criterion is supplied through moreCriteria.
+        // The separate decision-step rear-threat check is retained for diagnostics only.
+        // DisTLFormula rearThreatCondition = changeLaneRearThreatAtDecisionStep;
         // changeLaneLowSpeedAtDecisionStep remains evaluated for diagnostics but is not a shield condition.
-        shieldCondition = new ConjunctionDisTLFormula(shieldCondition, rearThreatCondition);
+        // shieldCondition = new ConjunctionDisTLFormula(shieldCondition, rearThreatCondition);
 
         if (moreCriteria != null) {
             for (DisTLFormula criteria : moreCriteria) {

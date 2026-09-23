@@ -765,25 +765,30 @@ public class ExploreFutureActionShield {
         }
         int egoOffset = vehicleOffset(egoIndex);
         int targetLane = (int) state.get(egoOffset + VarTable.target_lane_index.ordinal());
-        int rearIndex = getRearVehicleIndexInLane(state, egoIndex, targetLane);
-        if (rearIndex < 0) {
+        List<Integer> rearIndices = getRearVehicleIndicesInLane(state, egoIndex, targetLane);
+        if (rearIndices.isEmpty()) {
             return state;
         }
 
-        int rearOffset = vehicleOffset(rearIndex);
-        int rearLane = (int) state.get(rearOffset + VarTable.lane_index.ordinal());
-        double rearX = state.get(rearOffset + VarTable.x.ordinal());
-        double rearVx = state.get(rearOffset + VarTable.vx.ordinal());
         double egoVx = state.get(egoOffset + VarTable.vx.ordinal());
-        double desiredEgoX = rearX + VEHICLE_LENGTH + requiredGapForRearDelayedBraking(rearVx, egoVx);
+        double desiredEgoX = Double.NEGATIVE_INFINITY;
+        for (int rearIndex : rearIndices) {
+            int rearOffset = vehicleOffset(rearIndex);
+            double rearX = state.get(rearOffset + VarTable.x.ordinal());
+            double rearVx = state.get(rearOffset + VarTable.vx.ordinal());
+            desiredEgoX = Math.max(
+                    desiredEgoX,
+                    rearX + VEHICLE_LENGTH + requiredGapForRearDelayedBraking(rearVx, egoVx)
+            );
+        }
 
         List<DataStateUpdate> updates = new ArrayList<>();
         updates.add(new DataStateUpdate(egoOffset + VarTable.x.ordinal(), desiredEgoX));
-        updates.add(new DataStateUpdate(egoOffset + VarTable.lane_index.ordinal(), rearLane));
-        updates.add(new DataStateUpdate(egoOffset + VarTable.target_lane_index.ordinal(), rearLane));
+        updates.add(new DataStateUpdate(egoOffset + VarTable.lane_index.ordinal(), targetLane));
+        updates.add(new DataStateUpdate(egoOffset + VarTable.target_lane_index.ordinal(), targetLane));
 
         for (int i = 0; i < vehicleCount(); i++) {
-            if (i == egoIndex || i == rearIndex) {
+            if (i == egoIndex || rearIndices.contains(i)) {
                 continue;
             }
             int offset = vehicleOffset(i);
@@ -876,26 +881,29 @@ public class ExploreFutureActionShield {
         }
         int egoOffset = vehicleOffset(egoIndex);
         int targetLane = (int) state.get(egoOffset + VarTable.target_lane_index.ordinal());
-        int rearIndex = getRearVehicleIndexInLane(state, egoIndex, targetLane);
-        if (rearIndex < 0) {
+        List<Integer> rearIndices = getRearVehicleIndicesInLane(state, egoIndex, targetLane);
+        if (rearIndices.isEmpty()) {
             return 0.0;
         }
 
-        int rearOffset = vehicleOffset(rearIndex);
-        double rearGap = state.get(egoOffset + VarTable.x.ordinal())
-                - state.get(rearOffset + VarTable.x.ordinal())
-                - VEHICLE_LENGTH;
-        double requiredGap = requiredGapForRearDelayedBraking(
-                state.get(rearOffset + VarTable.vx.ordinal()),
-                state.get(egoOffset + VarTable.vx.ordinal())
-        );
-        if (rearGap >= requiredGap) {
-            return 0.0;
+        double maxPenalty = 0.0;
+        double egoX = state.get(egoOffset + VarTable.x.ordinal());
+        double egoVx = state.get(egoOffset + VarTable.vx.ordinal());
+        for (int rearIndex : rearIndices) {
+            int rearOffset = vehicleOffset(rearIndex);
+            double rearGap = egoX
+                    - state.get(rearOffset + VarTable.x.ordinal())
+                    - VEHICLE_LENGTH;
+            double requiredGap = requiredGapForRearDelayedBraking(
+                    state.get(rearOffset + VarTable.vx.ordinal()),
+                    egoVx
+            );
+            double penalty = rearGap >= requiredGap
+                    ? 0.0
+                    : Math.min(1.0, (requiredGap - rearGap) / requiredGap);
+            maxPenalty = Math.max(maxPenalty, penalty);
         }
-        if (requiredGap <= 0.0) {
-            return rearGap < 0.0 ? 1.0 : 0.0;
-        }
-        return Math.min(1.0, (requiredGap - rearGap) / requiredGap);
+        return maxPenalty;
     }
 
     protected double frontVehicleStabilityPenalty(DataState state) {
@@ -1040,11 +1048,10 @@ public class ExploreFutureActionShield {
         return egoLane != egoTargetLane;
     }
 
-    private int getRearVehicleIndexInLane(DataState state, int egoIndex, int lane) {
+    private List<Integer> getRearVehicleIndicesInLane(DataState state, int egoIndex, int lane) {
         int egoOffset = vehicleOffset(egoIndex);
         double egoX = state.get(egoOffset + VarTable.x.ordinal());
-        int rearIndex = -1;
-        double closestRearX = Double.NEGATIVE_INFINITY;
+        List<Integer> rearIndices = new ArrayList<>();
         for (int i = 0; i < vehicleCount(); i++) {
             if (i == egoIndex) {
                 continue;
@@ -1052,12 +1059,11 @@ public class ExploreFutureActionShield {
             int offset = vehicleOffset(i);
             int vehicleLane = (int) state.get(offset + VarTable.lane_index.ordinal());
             double x = state.get(offset + VarTable.x.ordinal());
-            if (vehicleLane == lane && x < egoX && x > closestRearX) {
-                rearIndex = i;
-                closestRearX = x;
+            if (vehicleLane == lane && x < egoX) {
+                rearIndices.add(i);
             }
         }
-        return rearIndex;
+        return rearIndices;
     }
 
     protected List<Integer> getFinalStabilityReferenceVehicles(DataState state, int egoIndex) {

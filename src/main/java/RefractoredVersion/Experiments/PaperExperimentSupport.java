@@ -11,7 +11,7 @@ import RefractoredVersion.TestScript.Runner;
 import java.nio.file.Path;
 
 final class PaperExperimentSupport {
-    static final int EPISODES = 20;
+    static final int EPISODES = 100;
 
     private PaperExperimentSupport() {
     }

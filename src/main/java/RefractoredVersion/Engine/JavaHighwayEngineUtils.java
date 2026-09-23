@@ -40,6 +40,7 @@ public class JavaHighwayEngineUtils {
     private static final double TAU_HEADING=0.2;
     private static final double TAU_LATERAL = 0.6;
     private static final double MIN_BRAKE = -3;
+
     private static final double MAX_ACCELERATION = 5;
     private static final double KP_A = 1 / TAU_ACC;
     private static final double KP_HEADING = 1 / TAU_HEADING;
